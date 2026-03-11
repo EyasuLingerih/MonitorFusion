@@ -3,12 +3,12 @@
 **Multi-Monitor Management Made Easy** — A free & open-source Windows utility for power users with multiple displays.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?logo=windows)](https://github.com/eling/MonitorFusion)
+[![Platform: Windows](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?logo=windows)](https://github.com/EyasuLingerih/MonitorFusion)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 > Set different wallpapers per monitor, move windows with hotkeys, snap windows to monitor edges, and more — all for free.
 
-**[Website](https://eling.github.io/MonitorFusion) · [Download](https://github.com/eling/MonitorFusion/releases) · [Report Bug](https://github.com/eling/MonitorFusion/issues)**
+**[Website](https://EyasuLingerih.github.io/MonitorFusion) · [Download](https://github.com/EyasuLingerih/MonitorFusion/releases) · [Report Bug](https://github.com/EyasuLingerih/MonitorFusion/issues)**
 
 ---
 
@@ -25,7 +25,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/eling/MonitorFusion.git
+git clone https://github.com/EyasuLingerih/MonitorFusion.git
 cd MonitorFusion
 
 # Restore packages
