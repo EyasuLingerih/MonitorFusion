@@ -1,0 +1,33 @@
+<UserControl x:Class="MonitorFusion.App.Views.FadingSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <StackPanel Margin="30">
+        <TextBlock Text="Monitor Fading (Focus Mode)" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,0,0,20"/>
+        
+        <TextBlock Text="Automatically dims inactive monitors with a sleek dark overlay to help you focus entirely on your actively used application." 
+                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,20" TextWrapping="Wrap"/>
+
+        <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="20">
+            <StackPanel>
+                <CheckBox x:Name="EnableFadingCheck" Content="Enable Monitor Fading" Foreground="{StaticResource TextBrush}" 
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+
+                <TextBlock Text="Dimming Mode:" Foreground="{StaticResource TextBrush}" Margin="0,20,0,5"/>
+                <ComboBox x:Name="ModeCombo" Width="250" HorizontalAlignment="Left" SelectionChanged="Setting_Changed">
+                    <ComboBoxItem Content="Dim Inactive Monitors" Tag="InactiveMonitors"/>
+                    <ComboBoxItem Content="Dim All Except Active Window" Tag="AllExceptActiveWindow"/>
+                </ComboBox>
+                <TextBlock Text="Note: Overlays are fully transparent to mouse clicks. You can still interact with dimmed apps." 
+                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap"/>
+
+                <TextBlock Text="Darkness Level (Opacity):" Foreground="{StaticResource TextBrush}" Margin="0,20,0,5"/>
+                <StackPanel Orientation="Horizontal">
+                    <Slider x:Name="OpacitySlider" Width="200" Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                            ValueChanged="Setting_Changed"/>
+                    <TextBlock x:Name="OpacityValueText" Text="70%" Foreground="{StaticResource TextSecondaryBrush}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

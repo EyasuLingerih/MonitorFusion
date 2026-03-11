@@ -1,0 +1,48 @@
+// Monitor APIs
+EnumDisplayMonitors
+GetMonitorInfo
+EnumDisplayDevices
+EnumDisplaySettings
+ChangeDisplaySettingsEx
+MonitorFromWindow
+MonitorFromPoint
+
+// Window APIs
+EnumWindows
+GetWindowRect
+SetWindowPos
+GetForegroundWindow
+SetForegroundWindow
+GetWindowText
+GetWindowThreadProcessId
+IsWindowVisible
+GetClassName
+ShowWindow
+MoveWindow
+
+// Hotkey APIs
+RegisterHotKey
+UnregisterHotKey
+
+// Wallpaper
+SystemParametersInfo
+
+// Shell
+Shell_NotifyIcon
+SHAppBarMessage
+
+// DWM (Desktop Window Manager)
+DwmRegisterThumbnail
+DwmUnregisterThumbnail
+DwmUpdateThumbnailProperties
+
+// Window Event Hooks
+SetWinEventHook
+UnhookWinEvent
+
+// System
+GetSystemMetrics
+GetDesktopWindow
+FindWindow
+SendMessage
+PostMessage

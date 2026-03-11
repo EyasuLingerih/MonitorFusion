@@ -1,0 +1,57 @@
+<Window x:Class="MonitorFusion.App.Views.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Starting MonitorFusion..." Height="400" Width="600"
+        WindowStartupLocation="CenterScreen" WindowStyle="None" 
+        AllowsTransparency="True" Background="Transparent" 
+        ShowInTaskbar="False" Topmost="True"
+        Icon="/Assets/icon.png">
+    
+    <!-- Beautiful Animated Splash Screen -->
+    <Border CornerRadius="16" Background="#181824" BorderBrush="#2A2A3C" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="30" ShadowDepth="10" Opacity="0.5" Color="Black"/>
+        </Border.Effect>
+        <Grid>
+            <!-- Background Glow -->
+            <Ellipse Width="400" Height="400" HorizontalAlignment="Center" VerticalAlignment="Center" 
+                     Fill="{StaticResource AccentBrush}" Opacity="0.1" Margin="0,0,0,0">
+                <Ellipse.Effect>
+                    <BlurEffect Radius="150"/>
+                </Ellipse.Effect>
+            </Ellipse>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <!-- Monitor Icon (Minimalist) -->
+                <Grid Width="120" Height="100" Margin="0,0,0,30">
+                    <Border BorderBrush="{StaticResource AccentBrush}" BorderThickness="4" CornerRadius="8" Width="100" Height="70" VerticalAlignment="Top" HorizontalAlignment="Center"/>
+                    <Rectangle Fill="{StaticResource AccentBrush}" Width="30" Height="20" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                    <Rectangle Fill="{StaticResource AccentBrush}" Width="50" Height="4" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                    
+                    <!-- Nested secondary monitor glow -->
+                    <Border BorderBrush="#AA64B5F6" BorderThickness="3" CornerRadius="6" Width="80" Height="50" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="0,-15,-20,0" Background="#181824"/>
+                </Grid>
+
+                <TextBlock Text="MonitorFusion" Foreground="White" FontSize="42" FontWeight="Light" HorizontalAlignment="Center" Margin="0,0,0,10">
+                    <TextBlock.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="{StaticResource AccentColor}"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+                <TextBlock Text="Master your multi-monitor workflow" Foreground="{StaticResource TextSecondaryBrush}" FontSize="16" FontWeight="Regular" HorizontalAlignment="Center" Margin="0,0,0,40"/>
+                
+                <ProgressBar x:Name="LoadingProgress" Width="200" Height="4" IsIndeterminate="True" 
+                             Background="#2A2A3C" Foreground="{StaticResource AccentBrush}" BorderThickness="0"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.5" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+</Window>
