@@ -332,7 +332,11 @@ public class WallpaperService
             string ext = Path.GetExtension(sourcePath);
             if (string.IsNullOrEmpty(ext)) ext = ".jpg";
             
-            string tempPath = Path.Combine(tempFolder, $"wp_{monitor.DeviceId.GetHashCode()}_{Math.Abs(hash)}{ext}");
+            // Use a stable, deterministic ID from the DeviceId string rather than GetHashCode()
+            // (GetHashCode is randomized per-run in .NET and would defeat the cache)
+            uint stableId = 0;
+            foreach (char c in monitor.DeviceId) stableId = stableId * 31 + c;
+            string tempPath = Path.Combine(tempFolder, $"wp_{stableId}_{Math.Abs(hash)}{ext}");
             System.Diagnostics.Debug.WriteLine($"[WallpaperService] Generated temp path: {tempPath}");
             
             // If we already generated this exact combo, reuse it

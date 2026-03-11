@@ -147,7 +147,7 @@
                            Foreground="{StaticResource AccentBrush}"
                            FontSize="20" FontWeight="Bold"
                            Margin="20,0,0,20"/>
-                <TextBlock Text="v0.1.0 — Free"
+                <TextBlock Text="v0.1.0 — Open Source"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            FontSize="11" Margin="20,-15,0,30"/>
 
@@ -169,18 +169,19 @@
                 <Button Content="⚙️  Settings" Style="{StaticResource NavButton}"
                         Click="NavSettings_Click"/>
 
-                <!-- Upgrade banner -->
-                <Border Background="#2A2A4A" CornerRadius="8" Margin="15,40,15,0" Padding="12">
+                <!-- GitHub banner -->
+                <Border Background="#1A2A1A" CornerRadius="8" Margin="15,40,15,0" Padding="12">
                     <StackPanel>
-                        <TextBlock Text="Upgrade to Pro"
-                                   Foreground="{StaticResource AccentBrush}"
+                        <TextBlock Text="Open Source"
+                                   Foreground="#4CAF50"
                                    FontWeight="Bold" FontSize="14"/>
-                        <TextBlock Text="Unlock all features including multi-monitor taskbar, profiles &amp; more"
+                        <TextBlock Text="MonitorFusion is free and open source. Star it on GitHub or contribute!"
                                    Foreground="{StaticResource TextSecondaryBrush}"
                                    TextWrapping="Wrap" FontSize="11" Margin="0,5,0,8"/>
-                        <Button Content="Learn More"
+                        <Button Content="View on GitHub"
                                 Style="{StaticResource ModernButton}"
-                                Click="UpgradePro_Click"/>
+                                Background="#2D4A2D"
+                                Click="ViewOnGitHub_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>

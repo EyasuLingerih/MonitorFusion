@@ -108,16 +108,6 @@ public partial class App : Application
         // Show splash screen
         var splash = new Views.SplashWindow();
         splash.Show();
-
-        // Apply dark theme globally (basic approach)
-        Current.Resources["TextBrush"] = new System.Windows.Media.SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#FFFFFF"));
-        Current.Resources["TextSecondaryBrush"] = new System.Windows.Media.SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#A0A0B0"));
-        Current.Resources["AccentBrush"] = new System.Windows.Media.SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#00A2ED"));
-        Current.Resources["SurfaceBrush"] = new System.Windows.Media.SolidColorBrush(
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#252538"));
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -414,12 +414,11 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpgradePro_Click(object sender, RoutedEventArgs e)
+    private void ViewOnGitHub_Click(object sender, RoutedEventArgs e)
     {
-        // TODO: Open purchase page or in-app upgrade dialog
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
-            FileName = "https://monitorfusion.com/upgrade",
+            FileName = "https://github.com/EyasuLingerih/MonitorFusion",
             UseShellExecute = true
         });
     }

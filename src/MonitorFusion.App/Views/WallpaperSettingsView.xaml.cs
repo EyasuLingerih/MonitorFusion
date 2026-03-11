@@ -199,7 +199,7 @@ public partial class WallpaperSettingsView : UserControl
     private void RotationInterval_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_isInitializing || _currentProfile.Rotation == null) return;
-        if (int.TryParse(RotationIntervalBox.Text, out int minutes))
+        if (int.TryParse(RotationIntervalBox.Text, out int minutes) && minutes >= 1)
         {
             _currentProfile.Rotation.IntervalMinutes = minutes;
         }

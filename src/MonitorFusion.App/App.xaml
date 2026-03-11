@@ -6,10 +6,10 @@
         <!-- Global styles for a modern dark theme -->
         <Color x:Key="PrimaryColor">#1E88E5</Color>
         <Color x:Key="BackgroundColor">#1E1E2E</Color>
-        <Color x:Key="SurfaceColor">#2D2D3F</Color>
-        <Color x:Key="TextColor">#E0E0E0</Color>
+        <Color x:Key="SurfaceColor">#252538</Color>
+        <Color x:Key="TextColor">#FFFFFF</Color>
         <Color x:Key="TextSecondaryColor">#A0A0B0</Color>
-        <Color x:Key="AccentColor">#64B5F6</Color>
+        <Color x:Key="AccentColor">#00A2ED</Color>
 
         <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
         <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
