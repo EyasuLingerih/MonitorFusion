@@ -39,6 +39,11 @@ public class MonitorDetectionService
         string? lpszDeviceName, IntPtr lpDevMode,
         IntPtr hwnd, uint dwflags, IntPtr lParam);
 
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    private const int MDT_EFFECTIVE_DPI = 0;
+
     private delegate bool MonitorEnumProc(
         IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
 
@@ -209,6 +214,14 @@ public class MonitorDetectionService
                         monitor.BitsPerPixel = devMode.dmBitsPerPel;
                         monitor.Orientation = devMode.dmDisplayOrientation;
                     }
+
+                    // Get DPI scale (shcore.dll, Windows 8.1+)
+                    try
+                    {
+                        if (GetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, out uint dpiX, out _) == 0)
+                            monitor.DpiScale = Math.Round(dpiX / 96.0 * 100);
+                    }
+                    catch { /* shcore.dll unavailable on very old Windows */ }
 
                     monitors.Add(monitor);
                 }

@@ -38,6 +38,9 @@ public class MonitorInfo
     /// <summary>Index for display ordering</summary>
     public int Index { get; set; }
 
+    /// <summary>DPI scale percent (100 = 100%, 125 = 125%, 0 = not detected)</summary>
+    public double DpiScale { get; set; } = 0;
+
     public override string ToString()
         => $"{FriendlyName} ({Width}x{Height} @ {RefreshRate}Hz) {(IsPrimary ? "[Primary]" : "")}";
 }

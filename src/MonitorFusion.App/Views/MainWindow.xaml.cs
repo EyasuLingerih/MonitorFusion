@@ -102,12 +102,25 @@ public partial class MainWindow : Window
         }
     }
 
+    private const int WM_DISPLAYCHANGE = 0x007E;
+
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
         if (msg == HotkeyService.WM_HOTKEY)
         {
             _hotkeyService?.ProcessHotkeyMessage(wParam.ToInt32());
             handled = true;
+        }
+        else if (msg == WM_DISPLAYCHANGE)
+        {
+            // A monitor was connected, disconnected, or its resolution changed
+            Dispatcher.BeginInvoke(() =>
+            {
+                RefreshMonitorList();
+                // If the Monitors page is currently open, refresh it too
+                if (ContentPanel.Children.Count > 0 && ContentPanel.Children[0] is MonitorProfileSettingsView view)
+                    view.Refresh();
+            });
         }
         return IntPtr.Zero;
     }

@@ -26,6 +26,9 @@ public class AppSettings
 
     /// <summary>Active monitor profile name</summary>
     public string ActiveMonitorProfile { get; set; } = "Default";
+
+    /// <summary>User-defined monitor labels keyed by DeviceId (e.g. \\.\DISPLAY1 → "Gaming Monitor")</summary>
+    public Dictionary<string, string> MonitorNicknames { get; set; } = new();
 }
 
 public class GeneralSettings

@@ -60,71 +60,77 @@ public class MonitorProfileService
     }
 
     /// <summary>
-    /// Applies a saved MonitorProfile using Windows display APIs to adjust resolution, position, etc.
+    /// Applies a saved MonitorProfile using Windows display APIs.
+    /// Returns (true, "") on success or (false, user-friendly message) on failure.
     /// </summary>
-    public bool ApplyProfile(string profileName)
+    public (bool Success, string Message) ApplyProfile(string profileName)
     {
         var settings = _settingsService.Load();
         var profile = settings.MonitorProfiles.FirstOrDefault(p => p.Name == profileName);
-        if (profile == null) return false;
+        if (profile == null)
+            return (false, $"Profile '{profileName}' was not found.");
 
+        string errorMessage = string.Empty;
         bool allSuccessful = true;
 
         foreach (var display in profile.Displays)
         {
-            // Get current DEVMODE struct shape to populate safely
-            if (_monitorService.GetCurrentDisplayConfig(display.DeviceId, out var devMode))
+            if (!_monitorService.GetCurrentDisplayConfig(display.DeviceId, out var devMode))
             {
-                devMode.dmPelsWidth = display.Width;
-                devMode.dmPelsHeight = display.Height;
-                devMode.dmDisplayFrequency = display.RefreshRate;
-                devMode.dmBitsPerPel = display.BitsPerPixel;
-                devMode.dmDisplayOrientation = display.Orientation;
-                devMode.dmPositionX = display.PositionX;
-                devMode.dmPositionY = display.PositionY;
+                errorMessage = $"Monitor '{display.DeviceId}' is not currently connected. Make sure all monitors from this profile are plugged in.";
+                allSuccessful = false;
+                break;
+            }
 
-                // Tell the API which fields are actually valid
-                devMode.dmFields = MonitorDetectionService.DM_PELSWIDTH | 
-                                   MonitorDetectionService.DM_PELSHEIGHT |
-                                   MonitorDetectionService.DM_DISPLAYFREQUENCY |
-                                   MonitorDetectionService.DM_BITSPERPEL |
-                                   MonitorDetectionService.DM_DISPLAYORIENTATION |
-                                   MonitorDetectionService.DM_POSITION;
+            devMode.dmPelsWidth          = display.Width;
+            devMode.dmPelsHeight         = display.Height;
+            devMode.dmDisplayFrequency   = display.RefreshRate;
+            devMode.dmBitsPerPel         = display.BitsPerPixel;
+            devMode.dmDisplayOrientation = display.Orientation;
+            devMode.dmPositionX          = display.PositionX;
+            devMode.dmPositionY          = display.PositionY;
+            devMode.dmFields = MonitorDetectionService.DM_PELSWIDTH |
+                               MonitorDetectionService.DM_PELSHEIGHT |
+                               MonitorDetectionService.DM_DISPLAYFREQUENCY |
+                               MonitorDetectionService.DM_BITSPERPEL |
+                               MonitorDetectionService.DM_DISPLAYORIENTATION |
+                               MonitorDetectionService.DM_POSITION;
 
-                // Queue changes into registry but do not broadcast yet (multimonitor safe)
-                uint flags = MonitorDetectionService.CDS_UPDATEREGISTRY | MonitorDetectionService.CDS_NORESET;
-                if (display.IsPrimary)
+            uint flags = MonitorDetectionService.CDS_UPDATEREGISTRY | MonitorDetectionService.CDS_NORESET;
+            if (display.IsPrimary) flags |= MonitorDetectionService.CDS_SET_PRIMARY;
+
+            int result = MonitorDetectionService.ChangeDisplaySettingsEx(
+                display.DeviceId, ref devMode, IntPtr.Zero, flags, IntPtr.Zero);
+
+            if (result != 0)
+            {
+                allSuccessful = false;
+                errorMessage = result switch
                 {
-                    flags |= MonitorDetectionService.CDS_SET_PRIMARY;
-                }
-
-                int result = MonitorDetectionService.ChangeDisplaySettingsEx(display.DeviceId, ref devMode, IntPtr.Zero, flags, IntPtr.Zero);
-                
-                if (result != 0) // DISP_CHANGE_SUCCESSFUL is 0
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to queue apply display settings for {display.DeviceId}. Result: {result}");
-                    allSuccessful = false;
-                }
+                     1 => $"A system restart is required to apply settings for '{display.DeviceId}'.",
+                    -1 => $"Windows rejected the settings for '{display.DeviceId}'. Try a different resolution.",
+                    -2 => $"{display.Width}×{display.Height} @ {display.RefreshRate} Hz is not supported by this monitor.",
+                    -4 => $"Settings could not be saved to the registry for '{display.DeviceId}'.",
+                    _  => $"Unexpected error (code {result}) applying settings for '{display.DeviceId}'."
+                };
+                System.Diagnostics.Debug.WriteLine($"[MonitorProfile] {errorMessage}");
             }
         }
 
         if (allSuccessful)
         {
-            // Broadcast all queued changes simultaneously to Windows
-            int commitResult = MonitorDetectionService.ChangeDisplaySettingsEx(null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
+            int commitResult = MonitorDetectionService.ChangeDisplaySettingsEx(
+                null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
             if (commitResult != 0)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to commit display settings. Result: {commitResult}");
-                allSuccessful = false;
-            }
-            else
-            {
-                settings.ActiveMonitorProfile = profileName;
-                _settingsService.Save(settings);
-            }
+                return commitResult == 1
+                    ? (false, "Settings applied but a restart is required to take full effect.")
+                    : (false, $"Settings queued but could not be committed (error {commitResult}).");
+
+            settings.ActiveMonitorProfile = profileName;
+            _settingsService.Save(settings);
         }
 
-        return allSuccessful;
+        return allSuccessful ? (true, string.Empty) : (false, errorMessage);
     }
 
     public void DeleteProfile(string profileName)
