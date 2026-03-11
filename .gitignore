@@ -21,6 +21,8 @@ packages/
 [Rr]elease/
 x64/
 x86/
+publish/
+*.zip
 
 ## Logs
 *.log

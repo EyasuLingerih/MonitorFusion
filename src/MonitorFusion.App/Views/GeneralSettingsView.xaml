@@ -13,7 +13,7 @@
         <!-- Startup -->
         <TextBlock Text="STARTUP" FontSize="11" FontWeight="Bold"
                    Foreground="{DynamicResource TextSecondaryBrush}"
-                   LetterSpacing="2" Margin="0,0,0,10"/>
+                    Margin="0,0,0,10"/>
         <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
                 Padding="16" Margin="0,0,0,20">
             <StackPanel>
@@ -37,7 +37,7 @@
         <!-- Updates -->
         <TextBlock Text="UPDATES" FontSize="11" FontWeight="Bold"
                    Foreground="{DynamicResource TextSecondaryBrush}"
-                   LetterSpacing="2" Margin="0,0,0,10"/>
+                    Margin="0,0,0,10"/>
         <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
                 Padding="16" Margin="0,0,0,20">
             <StackPanel>
@@ -51,7 +51,7 @@
         <!-- Settings Backup -->
         <TextBlock Text="SETTINGS BACKUP" FontSize="11" FontWeight="Bold"
                    Foreground="{DynamicResource TextSecondaryBrush}"
-                   LetterSpacing="2" Margin="0,0,0,10"/>
+                    Margin="0,0,0,10"/>
         <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
                 Padding="16" Margin="0,0,0,20">
             <StackPanel>
@@ -76,7 +76,7 @@
         <!-- Danger Zone -->
         <TextBlock Text="DANGER ZONE" FontSize="11" FontWeight="Bold"
                    Foreground="#CF6679"
-                   LetterSpacing="2" Margin="0,0,0,10"/>
+                    Margin="0,0,0,10"/>
         <Border BorderBrush="#CF6679" BorderThickness="1" CornerRadius="8"
                 Padding="16" Margin="0,0,0,20">
             <StackPanel>

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using System.Windows;
 using MonitorFusion.App.Services;
@@ -54,7 +55,7 @@ public partial class App : Application
         };
         AppDomain.CurrentDomain.UnhandledException += (s, args) =>
         {
-            WriteCrashLog("crash_fatal.log", args.ExceptionObject.ToString());
+            WriteCrashLog("crash_fatal.log", args.ExceptionObject?.ToString() ?? "Unknown error");
         };
 
         // Ensure only one instance runs
