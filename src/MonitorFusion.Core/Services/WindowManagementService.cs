@@ -173,6 +173,24 @@ public class WindowManagementService
         }
     }
 
+    /// <summary>
+    /// Validates an executable path before launching it.
+    /// Must be an existing .exe file with no path traversal sequences.
+    /// </summary>
+    private static bool IsValidExecutablePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        if (!path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
+        try
+        {
+            string full = Path.GetFullPath(path);
+            // Reject anything with path traversal in the original string
+            if (path.Contains("..")) return false;
+            return File.Exists(full);
+        }
+        catch { return false; }
+    }
+
     public void ReloadSettings(SnappingSettings settings)
     {
         if (settings != null)
@@ -492,10 +510,11 @@ public class WindowManagementService
         // Pass 1: Launch missing apps
         foreach (var saved in profile.Windows)
         {
-            if (string.IsNullOrWhiteSpace(saved.ExecutablePath)) continue;
+            // Security: only launch paths that are confirmed .exe files on disk
+            if (!IsValidExecutablePath(saved.ExecutablePath)) continue;
 
             // Check if it's already running (by exact exe path or process name)
-            bool isRunning = currentWindows.Any(w => w.ExecutablePath.Equals(saved.ExecutablePath, StringComparison.OrdinalIgnoreCase) || 
+            bool isRunning = currentWindows.Any(w => w.ExecutablePath.Equals(saved.ExecutablePath, StringComparison.OrdinalIgnoreCase) ||
                                                      w.ProcessName.Equals(saved.ProcessName, StringComparison.OrdinalIgnoreCase));
 
             if (!isRunning)

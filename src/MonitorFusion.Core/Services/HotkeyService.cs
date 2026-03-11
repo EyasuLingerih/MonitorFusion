@@ -59,7 +59,7 @@ public class HotkeyService : IDisposable
                 $"Error code: {Marshal.GetLastWin32Error()}");
         }
 
-        System.IO.File.AppendAllText("hotkey_test.log", $"Successfully registered hotkey ID {id} with Modifiers {modifiers} and Key {key}\n");
+        System.Diagnostics.Debug.WriteLine($"Registered hotkey ID {id} — Modifiers={modifiers} Key={key}");
         _registeredHotkeys[id] = callback;
         return id;
     }

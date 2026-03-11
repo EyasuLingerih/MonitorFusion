@@ -79,9 +79,13 @@ public class SettingsService
 
     /// <summary>
     /// Exports settings to a file for backup/transfer.
+    /// Path must be a writable .json file path.
     /// </summary>
     public void Export(string exportPath)
     {
+        if (!IsValidJsonPath(exportPath))
+            throw new ArgumentException("Export path must end with .json and contain no illegal characters.");
+
         var settings = Load();
         var json = JsonSerializer.Serialize(settings, JsonOptions);
         File.WriteAllText(exportPath, json);
@@ -89,14 +93,29 @@ public class SettingsService
 
     /// <summary>
     /// Imports settings from a backup file.
+    /// Path must point to an existing .json file.
     /// </summary>
     public AppSettings Import(string importPath)
     {
+        if (!IsValidJsonPath(importPath))
+            throw new ArgumentException("Import path must end with .json and contain no illegal characters.");
+        if (!File.Exists(importPath))
+            throw new FileNotFoundException("Settings file not found.", importPath);
+
         var json = File.ReadAllText(importPath);
         var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                        ?? new AppSettings();
         Save(settings);
         return settings;
+    }
+
+    /// <summary>Validates that a path is a well-formed .json file path with no illegal characters.</summary>
+    private static bool IsValidJsonPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        if (!path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) return false;
+        try { Path.GetFullPath(path); return true; }
+        catch { return false; }
     }
 
     /// <summary>

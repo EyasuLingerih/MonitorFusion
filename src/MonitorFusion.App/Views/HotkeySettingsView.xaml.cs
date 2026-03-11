@@ -151,16 +151,14 @@ public partial class HotkeySettingsView : UserControl
     private void SaveAndApplySettings()
     {
         HotkeysList.Items.Refresh(); // Update the UI list
-        
+
         var appSettings = App.SettingsService.Load();
         appSettings.Hotkeys = _settings;
         App.SettingsService.Save(appSettings);
-        
-        // We have to restart the app to easily re-register global hotkeys since 
-        // they are bound on MainWindow load. 
-        // For a seamless experience, we could send a message to MainWindow to re-initialize them,
-        // but for now, we'll just log it. In a real app we'd dispatch an event.
-        System.Diagnostics.Debug.WriteLine("Hotkeys saved. Please restart the app for changes to take effect.");
+
+        // Re-register hotkeys immediately — no restart needed
+        if (Application.Current.MainWindow is MainWindow mainWindow)
+            mainWindow.ReloadHotkeys();
     }
 }
 

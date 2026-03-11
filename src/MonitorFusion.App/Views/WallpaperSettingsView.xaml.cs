@@ -176,12 +176,17 @@ public partial class WallpaperSettingsView : UserControl
         App.WallpaperService.ApplyProfile(_currentProfile);
 
         if (_currentProfile.Rotation != null && _currentProfile.Rotation.Enabled)
-        {
             App.WallpaperService.StartRotation(_currentProfile.Rotation);
-        }
         else
-        {
             App.WallpaperService.StopRotation();
+
+        // Confirm to the user via tray notification
+        if (Application.Current.MainWindow is MainWindow mainWindow)
+        {
+            mainWindow.TrayIcon.ShowBalloonTip(
+                "Wallpaper Saved",
+                $"Profile \"{_currentProfile.Name}\" saved and applied.",
+                Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
         }
     }
 

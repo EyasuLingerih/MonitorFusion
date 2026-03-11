@@ -1,0 +1,94 @@
+<UserControl x:Class="MonitorFusion.App.Views.GeneralSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Padding="24">
+
+    <StackPanel>
+        <TextBlock Text="General Settings" FontSize="20" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
+        <TextBlock Text="Configure startup behaviour and application preferences."
+                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"
+                   Margin="0,0,0,28"/>
+
+        <!-- Startup -->
+        <TextBlock Text="STARTUP" FontSize="11" FontWeight="Bold"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   LetterSpacing="2" Margin="0,0,0,10"/>
+        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                Padding="16" Margin="0,0,0,20">
+            <StackPanel>
+                <CheckBox x:Name="StartWithWindowsCheck"
+                          Content="Start MonitorFusion with Windows"
+                          Foreground="{DynamicResource TextBrush}"
+                          Margin="0,0,0,10"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                <CheckBox x:Name="StartMinimizedCheck"
+                          Content="Start minimized to system tray"
+                          Foreground="{DynamicResource TextBrush}"
+                          Margin="0,0,0,10"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                <CheckBox x:Name="ShowTrayIconCheck"
+                          Content="Show tray icon"
+                          Foreground="{DynamicResource TextBrush}"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Updates -->
+        <TextBlock Text="UPDATES" FontSize="11" FontWeight="Bold"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   LetterSpacing="2" Margin="0,0,0,10"/>
+        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                Padding="16" Margin="0,0,0,20">
+            <StackPanel>
+                <CheckBox x:Name="CheckForUpdatesCheck"
+                          Content="Automatically check for updates"
+                          Foreground="{DynamicResource TextBrush}"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Settings Backup -->
+        <TextBlock Text="SETTINGS BACKUP" FontSize="11" FontWeight="Bold"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   LetterSpacing="2" Margin="0,0,0,10"/>
+        <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="8"
+                Padding="16" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12" TextWrapping="Wrap"
+                           Text="Export your settings to a file for backup, or import a previously exported file."
+                           Margin="0,0,0,12"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button x:Name="ExportButton" Content="Export Settings…"
+                            Padding="12,6" Margin="0,0,8,0"
+                            Click="Export_Click"/>
+                    <Button x:Name="ImportButton" Content="Import Settings…"
+                            Padding="12,6"
+                            Click="Import_Click"/>
+                </StackPanel>
+                <TextBlock x:Name="BackupStatusText"
+                           Foreground="{DynamicResource AccentBrush}"
+                           FontSize="12" Visibility="Collapsed"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Danger Zone -->
+        <TextBlock Text="DANGER ZONE" FontSize="11" FontWeight="Bold"
+                   Foreground="#CF6679"
+                   LetterSpacing="2" Margin="0,0,0,10"/>
+        <Border BorderBrush="#CF6679" BorderThickness="1" CornerRadius="8"
+                Padding="16" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}"
+                           FontSize="12" TextWrapping="Wrap"
+                           Text="This will reset all settings to their defaults. Wallpaper profiles, hotkeys, and all other configuration will be lost."
+                           Margin="0,0,0,12"/>
+                <Button x:Name="ResetButton" Content="Reset All Settings to Defaults"
+                        Padding="12,6" Foreground="White"
+                        Background="#8B2030"
+                        Click="Reset_Click"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

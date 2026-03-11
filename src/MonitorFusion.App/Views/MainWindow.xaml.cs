@@ -21,6 +21,18 @@ public partial class MainWindow : Window
         Closing += OnClosing;
     }
 
+    /// <summary>
+    /// Re-registers all global hotkeys from current settings.
+    /// Call this after the user changes hotkey bindings.
+    /// </summary>
+    public void ReloadHotkeys()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        _hotkeyService?.Dispose();
+        _hotkeyService = null;
+        InitializeHotkeys(hwnd);
+    }
+
     public void InitializeBackgroundServices()
     {
         // Force hWnd creation so hotkeys can work without the window being visible
@@ -42,11 +54,7 @@ public partial class MainWindow : Window
     private void RefreshMonitorList()
     {
         var monitors = App.MonitorService.GetAllMonitors();
-        System.IO.File.WriteAllText("monitors_detected.log", $"Detected {monitors.Count} monitors.");
-        foreach (var monitor in monitors)
-        {
-            System.IO.File.AppendAllText("monitors_detected.log", $"\n- {monitor.FriendlyName} ({monitor.DeviceId}): Primary={monitor.IsPrimary}, Bounds={monitor.Bounds.Left},{monitor.Bounds.Top} {monitor.Bounds.Width}x{monitor.Bounds.Height}");
-        }
+        System.Diagnostics.Debug.WriteLine($"Detected {monitors.Count} monitor(s).");
         MonitorList.ItemsSource = monitors;
     }
 
@@ -228,7 +236,8 @@ public partial class MainWindow : Window
 
     private void NavSettings_Click(object sender, RoutedEventArgs e)
     {
-        // TODO: Switch content panel to General settings view
+        ContentPanel.Children.Clear();
+        ContentPanel.Children.Add(new GeneralSettingsView());
     }
 
     #endregion
@@ -237,13 +246,61 @@ public partial class MainWindow : Window
 
     private void IdentifyMonitors_Click(object sender, RoutedEventArgs e)
     {
-        // Show a large number overlay on each monitor for identification
         var monitors = App.MonitorService.GetAllMonitors();
         foreach (var monitor in monitors)
         {
-            // TODO: Create a borderless, topmost window on each monitor
-            // showing the monitor number for 3 seconds
-            // Similar to Windows' "Identify" button in Display settings
+            var label = new System.Windows.Controls.TextBlock
+            {
+                Text = (monitor.Index + 1).ToString(),
+                FontSize = 96,
+                FontWeight = System.Windows.FontWeights.Bold,
+                Foreground = System.Windows.Media.Brushes.White,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+
+            var subLabel = new System.Windows.Controls.TextBlock
+            {
+                Text = monitor.FriendlyName,
+                FontSize = 18,
+                Foreground = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromArgb(200, 200, 200, 200)),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+
+            var stack = new System.Windows.Controls.StackPanel
+            {
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+            stack.Children.Add(label);
+            stack.Children.Add(subLabel);
+
+            var overlay = new Window
+            {
+                WindowStyle = WindowStyle.None,
+                ResizeMode = ResizeMode.NoResize,
+                Topmost = true,
+                ShowInTaskbar = false,
+                AllowsTransparency = true,
+                Background = new System.Windows.Media.SolidColorBrush(
+                    System.Windows.Media.Color.FromArgb(210, 15, 15, 30)),
+                Left = monitor.Bounds.Left,
+                Top = monitor.Bounds.Top,
+                Width = monitor.Width,
+                Height = monitor.Height,
+                Content = stack
+            };
+            overlay.Show();
+
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(3)
+            };
+            timer.Tick += (s, _) => { overlay.Close(); timer.Stop(); };
+            timer.Start();
         }
     }
 

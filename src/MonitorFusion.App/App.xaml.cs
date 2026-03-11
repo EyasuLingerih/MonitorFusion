@@ -22,18 +22,39 @@ public partial class App : Application
     public static TaskbarService TaskbarService { get; private set; } = null!;
     public static FadingService FadingService { get; private set; } = null!;
 
+    // Shared log directory used by crash handlers (created on first use)
+    private static string LogDir =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                     "MonitorFusion", "logs");
+
+    private static void WriteCrashLog(string fileName, string content)
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDir);
+            File.WriteAllText(Path.Combine(LogDir, fileName), content);
+        }
+        catch { /* best effort — never crash inside the crash handler */ }
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         this.DispatcherUnhandledException += (s, args) =>
         {
-            System.IO.File.WriteAllText("crash_early.log", args.Exception.ToString());
-            MessageBox.Show("Fatal error: " + args.Exception.Message, "Error");
+            var logPath = Path.Combine(LogDir, "crash.log");
+            WriteCrashLog("crash.log", args.Exception.ToString());
+            MessageBox.Show(
+                $"MonitorFusion encountered an unexpected error and needs to close.\n\n" +
+                $"{args.Exception.Message}\n\n" +
+                $"A crash log has been saved to:\n{logPath}",
+                "MonitorFusion — Unexpected Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
             args.Handled = true;
             Shutdown();
         };
         AppDomain.CurrentDomain.UnhandledException += (s, args) =>
         {
-            System.IO.File.WriteAllText("crash_domain_early.log", args.ExceptionObject.ToString());
+            WriteCrashLog("crash_fatal.log", args.ExceptionObject.ToString());
         };
 
         // Ensure only one instance runs
