@@ -14,6 +14,12 @@ namespace MonitorFusion.App;
 public partial class App : Application
 {
     private Mutex? _singleInstanceMutex;
+    private bool _ownsMutex;
+    private EventWaitHandle? _activateEvent;
+    private Thread? _activateThread;
+
+    private const string MutexName  = "MonitorFusion_SingleInstance";
+    private const string EventName  = "MonitorFusion_Activate";
 
     // Core services (will be accessed by ViewModels)
     public static MonitorDetectionService MonitorService { get; private set; } = null!;
@@ -61,14 +67,32 @@ public partial class App : Application
         };
 
         // Ensure only one instance runs
-        _singleInstanceMutex = new Mutex(true, "MonitorFusion_SingleInstance", out bool createdNew);
+        _singleInstanceMutex = new Mutex(true, MutexName, out bool createdNew);
+        _ownsMutex = createdNew;
         if (!createdNew)
         {
-            MessageBox.Show("MonitorFusion is already running!", "MonitorFusion",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            // Signal the running instance to bring itself to the front
+            try
+            {
+                using var ev = EventWaitHandle.OpenExisting(EventName);
+                ev.Set();
+            }
+            catch { }
             Shutdown();
             return;
         }
+
+        // Listen for activate signals from future second-launch attempts
+        _activateEvent = new EventWaitHandle(false, EventResetMode.AutoReset, EventName);
+        _activateThread = new Thread(() =>
+        {
+            while (true)
+            {
+                _activateEvent.WaitOne();
+                Dispatcher.BeginInvoke(BringToFront);
+            }
+        }) { IsBackground = true };
+        _activateThread.Start();
 
         base.OnStartup(e);
 
@@ -113,6 +137,17 @@ public partial class App : Application
         splash.Show();
     }
 
+    private void BringToFront()
+    {
+        var mainWindow = Windows.OfType<Views.MainWindow>().FirstOrDefault();
+        if (mainWindow != null)
+        {
+            mainWindow.Show();
+            mainWindow.WindowState = WindowState.Normal;
+            mainWindow.Activate();
+        }
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         WindowService?.StopBackgroundServices();
@@ -120,7 +155,8 @@ public partial class App : Application
         TaskbarService?.Stop();
         FadingService?.Stop();
         ZoneService?.Stop();
-        _singleInstanceMutex?.ReleaseMutex();
+        _activateEvent?.Dispose();
+        if (_ownsMutex) _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
     }
