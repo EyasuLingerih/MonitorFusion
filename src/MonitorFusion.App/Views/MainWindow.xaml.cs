@@ -41,12 +41,25 @@ public partial class MainWindow : Window
         // Load and display monitors
         RefreshMonitorList();
 
+        // Hook WndProc for WM_DISPLAYCHANGE and WM_HOTKEY — done here so it always
+        // runs even if hotkey registration fails below.
+        var hwndSource = HwndSource.FromHwnd(hwnd);
+        hwndSource?.AddHook(WndProc);
+
+        // Refresh monitor list whenever the window is shown (e.g. opened from tray)
+        IsVisibleChanged += (s, e) =>
+        {
+            if ((bool)e.NewValue)
+                RefreshMonitorList();
+        };
+
         // Initialize hotkeys
         InitializeHotkeys(hwnd);
-        
-        // Start background hooks (Snapping, etc)
+
+        // Start background hooks (Snapping, Zone layouts, etc)
         var settings = App.SettingsService.Load();
         App.WindowService.StartBackgroundServices(settings.Snapping);
+        App.ZoneService.Start();
     }
 
 
@@ -63,10 +76,6 @@ public partial class MainWindow : Window
         try
         {
             _hotkeyService = new HotkeyService(hwnd);
-
-            // Hook into window messages to receive WM_HOTKEY
-            var source = HwndSource.FromHwnd(hwnd);
-            source?.AddHook(WndProc);
 
             // Register default hotkeys
             var settings = App.SettingsService.Load();
@@ -239,6 +248,12 @@ public partial class MainWindow : Window
     {
         ContentPanel.Children.Clear();
         ContentPanel.Children.Add(new WindowLayoutsView());
+    }
+
+    private void NavZones_Click(object sender, RoutedEventArgs e)
+    {
+        ContentPanel.Children.Clear();
+        ContentPanel.Children.Add(new ZoneLayoutEditorView());
     }
 
     private void NavFading_Click(object sender, RoutedEventArgs e)

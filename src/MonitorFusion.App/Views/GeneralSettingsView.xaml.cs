@@ -19,10 +19,11 @@ public partial class GeneralSettingsView : UserControl
         _isInitializing = true;
         var settings = App.SettingsService.Load();
 
-        StartWithWindowsCheck.IsChecked = settings.General.StartWithWindows;
-        StartMinimizedCheck.IsChecked   = settings.General.StartMinimized;
-        ShowTrayIconCheck.IsChecked     = settings.General.ShowTrayIcon;
-        CheckForUpdatesCheck.IsChecked  = settings.General.CheckForUpdates;
+        StartWithWindowsCheck.IsChecked    = settings.General.StartWithWindows;
+        StartMinimizedCheck.IsChecked      = settings.General.StartMinimized;
+        ShowTrayIconCheck.IsChecked        = settings.General.ShowTrayIcon;
+        CheckForUpdatesCheck.IsChecked     = settings.General.CheckForUpdates;
+        DesktopContextMenuCheck.IsChecked  = settings.General.DesktopContextMenu;
 
         _isInitializing = false;
     }
@@ -32,14 +33,15 @@ public partial class GeneralSettingsView : UserControl
         if (_isInitializing) return;
 
         var settings = App.SettingsService.Load();
-        settings.General.StartWithWindows = StartWithWindowsCheck.IsChecked == true;
-        settings.General.StartMinimized   = StartMinimizedCheck.IsChecked   == true;
-        settings.General.ShowTrayIcon     = ShowTrayIconCheck.IsChecked     == true;
-        settings.General.CheckForUpdates  = CheckForUpdatesCheck.IsChecked  == true;
+        settings.General.StartWithWindows   = StartWithWindowsCheck.IsChecked   == true;
+        settings.General.StartMinimized     = StartMinimizedCheck.IsChecked     == true;
+        settings.General.ShowTrayIcon       = ShowTrayIconCheck.IsChecked       == true;
+        settings.General.CheckForUpdates    = CheckForUpdatesCheck.IsChecked    == true;
+        settings.General.DesktopContextMenu = DesktopContextMenuCheck.IsChecked == true;
         App.SettingsService.Save(settings);
 
-        // Apply startup registry entry immediately
         ApplyStartWithWindows(settings.General.StartWithWindows);
+        ApplyDesktopContextMenu(settings.General.DesktopContextMenu);
     }
 
     private static void ApplyStartWithWindows(bool enable)
@@ -66,6 +68,39 @@ public partial class GeneralSettingsView : UserControl
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to update startup registry: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Writes or removes the desktop right-click context menu entry.
+    /// Uses HKCU\SOFTWARE\Classes so no admin rights are needed.
+    /// The key merges into HKCR automatically, making the entry visible system-wide for this user.
+    /// </summary>
+    private static void ApplyDesktopContextMenu(bool enable)
+    {
+        const string subKey = @"SOFTWARE\Classes\DesktopBackground\Shell\MonitorFusion";
+        try
+        {
+            if (enable)
+            {
+                string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "";
+                if (string.IsNullOrEmpty(exePath)) return;
+
+                using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(subKey);
+                key.SetValue("", "Open MonitorFusion");
+                key.SetValue("Icon", $"\"{exePath}\",0");
+
+                using var cmd = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(subKey + @"\command");
+                cmd.SetValue("", $"\"{exePath}\"");
+            }
+            else
+            {
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(subKey, throwOnMissingSubKey: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to update context menu registry: {ex.Message}");
         }
     }
 

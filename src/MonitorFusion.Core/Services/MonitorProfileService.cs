@@ -133,6 +133,56 @@ public class MonitorProfileService
         return allSuccessful ? (true, string.Empty) : (false, errorMessage);
     }
 
+    /// <summary>
+    /// Applies display settings for a single monitor immediately.
+    /// Returns (true, "") on success or (false, user-friendly message) on failure.
+    /// </summary>
+    public (bool Success, string Message) ApplyMonitorSettings(
+        string deviceId, int width, int height, int refreshRate, int orientation, bool setPrimary)
+    {
+        if (!_monitorService.GetCurrentDisplayConfig(deviceId, out var devMode))
+            return (false, $"Monitor '{deviceId}' is not currently connected.");
+
+        devMode.dmPelsWidth          = width;
+        devMode.dmPelsHeight         = height;
+        devMode.dmDisplayFrequency   = refreshRate;
+        devMode.dmDisplayOrientation = orientation;
+        devMode.dmFields = MonitorDetectionService.DM_PELSWIDTH   |
+                           MonitorDetectionService.DM_PELSHEIGHT  |
+                           MonitorDetectionService.DM_DISPLAYFREQUENCY |
+                           MonitorDetectionService.DM_DISPLAYORIENTATION |
+                           MonitorDetectionService.DM_POSITION;
+
+        uint flags = MonitorDetectionService.CDS_UPDATEREGISTRY | MonitorDetectionService.CDS_NORESET;
+        if (setPrimary) flags |= MonitorDetectionService.CDS_SET_PRIMARY;
+
+        int result = MonitorDetectionService.ChangeDisplaySettingsEx(
+            deviceId, ref devMode, IntPtr.Zero, flags, IntPtr.Zero);
+
+        if (result != 0)
+        {
+            string errorMessage = result switch
+            {
+                 1 => "A system restart is required to apply these settings.",
+                -1 => "Windows rejected these settings. Try a different resolution or refresh rate.",
+                -2 => $"{width}×{height} @ {refreshRate} Hz is not supported by this monitor.",
+                -4 => "Settings could not be saved to the registry.",
+                _  => $"Unexpected error (code {result}) applying settings."
+            };
+            return (false, errorMessage);
+        }
+
+        // Commit the change
+        int commitResult = MonitorDetectionService.ChangeDisplaySettingsEx(
+            null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
+        if (commitResult != 0)
+            return commitResult == 1
+                ? (false, "Settings applied but a restart is required to take full effect.")
+                : (false, $"Settings queued but could not be committed (error {commitResult}).");
+
+        return (true, string.Empty);
+    }
+
     public void DeleteProfile(string profileName)
     {
         var settings = _settingsService.Load();

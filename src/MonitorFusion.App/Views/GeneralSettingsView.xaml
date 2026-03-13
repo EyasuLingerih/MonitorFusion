@@ -30,6 +30,11 @@
                 <CheckBox x:Name="ShowTrayIconCheck"
                           Content="Show tray icon"
                           Foreground="{DynamicResource TextBrush}"
+                          Margin="0,0,0,10"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"/>
+                <CheckBox x:Name="DesktopContextMenuCheck"
+                          Content="Add 'Open MonitorFusion' to desktop right-click menu"
+                          Foreground="{DynamicResource TextBrush}"
                           Checked="Setting_Changed" Unchecked="Setting_Changed"/>
             </StackPanel>
         </Border>

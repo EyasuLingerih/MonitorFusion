@@ -44,8 +44,11 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,20,0">
                         <TextBlock Text="Background Image" Foreground="{StaticResource TextBrush}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <Border x:Name="ImagePreviewBorder" Background="#1A1A2E" CornerRadius="4" Height="150" Margin="0,0,0,10" MouseLeftButtonDown="ImagePreview_Click" Cursor="Hand">
-                            <TextBlock x:Name="ImagePreviewPlaceholder" Text="Click to select image" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border x:Name="ImagePreviewBorder" Background="#1A1A2E" CornerRadius="4" Height="150" Margin="0,0,0,10" MouseLeftButtonDown="ImagePreview_Click" Cursor="Hand" ClipToBounds="True">
+                            <Grid>
+                                <Image x:Name="ImagePreview" Stretch="Uniform" Visibility="Collapsed"/>
+                                <TextBlock x:Name="ImagePreviewPlaceholder" Text="Click to select image" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
                         </Border>
                         
                         <TextBlock Text="Sizing Mode" Foreground="{StaticResource TextBrush}" Margin="0,10,0,5"/>

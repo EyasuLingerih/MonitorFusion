@@ -3,6 +3,7 @@ using System.Threading;
 using System.Windows;
 using MonitorFusion.App.Services;
 using MonitorFusion.Core.Services;
+using MonitorFusion.Core.Models;
 
 namespace MonitorFusion.App;
 
@@ -22,6 +23,7 @@ public partial class App : Application
     public static MonitorProfileService MonitorProfileService { get; private set; } = null!;
     public static TaskbarService TaskbarService { get; private set; } = null!;
     public static FadingService FadingService { get; private set; } = null!;
+    public static ZoneService ZoneService { get; private set; } = null!;
 
     // Shared log directory used by crash handlers (created on first use)
     private static string LogDir =>
@@ -78,6 +80,7 @@ public partial class App : Application
         MonitorProfileService = new MonitorProfileService(MonitorService, SettingsService);
         TaskbarService = new TaskbarService(MonitorService, SettingsService);
         FadingService = new FadingService(MonitorService, SettingsService);
+        ZoneService = new ZoneService(MonitorService, SettingsService);
 
         // Load settings
         var settings = SettingsService.Load();
@@ -116,6 +119,7 @@ public partial class App : Application
         WallpaperService?.StopRotation();
         TaskbarService?.Stop();
         FadingService?.Stop();
+        ZoneService?.Stop();
         _singleInstanceMutex?.ReleaseMutex();
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);

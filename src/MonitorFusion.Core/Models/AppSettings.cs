@@ -29,6 +29,9 @@ public class AppSettings
 
     /// <summary>User-defined monitor labels keyed by DeviceId (e.g. \\.\DISPLAY1 → "Gaming Monitor")</summary>
     public Dictionary<string, string> MonitorNicknames { get; set; } = new();
+
+    /// <summary>Zone layout settings — virtual monitor splitting</summary>
+    public ZoneSettings Zones { get; set; } = new();
 }
 
 public class GeneralSettings
@@ -38,6 +41,8 @@ public class GeneralSettings
     public bool CheckForUpdates { get; set; } = true;
     public string Language { get; set; } = "en";  // Support "am" for Amharic!
     public bool ShowTrayIcon { get; set; } = true;
+    /// <summary>Add "Open MonitorFusion" to the desktop right-click context menu.</summary>
+    public bool DesktopContextMenu { get; set; } = false;
 }
 
 public class SnappingSettings

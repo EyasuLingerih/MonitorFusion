@@ -137,40 +137,66 @@ public class WindowManagementService
     private const int SW_MAXIMIZE = 3;
     private const int SW_MINIMIZE = 6;
     private const int SW_RESTORE = 9;
-    private const uint MONITOR_DEFAULTTONEAREST = 2;
-    private const uint EVENT_SYSTEM_MOVESIZEEND = 0x000B;
+    private const uint MONITOR_DEFAULTTONEAREST  = 2;
+    private const uint EVENT_SYSTEM_MOVESIZESTART = 0x000A;
+    private const uint EVENT_SYSTEM_MOVESIZEEND   = 0x000B;
+    private const uint EVENT_OBJECT_LOCATIONCHANGE = 0x800B;
     private const uint WINEVENT_OUTOFCONTEXT = 0;
-    private const int VK_SHIFT = 0x10;
+    private const int  VK_SHIFT     = 0x10;
+    private const int  OBJID_WINDOW = 0;
 
     #endregion
 
-    private IntPtr _winEventHook;
-    private WinEventDelegate? _winEventProc;
+    // Two hooks: MOVESIZESTART/END is always active; LOCATIONCHANGE is only
+    // registered when StickySnapping is enabled (fires during-drag).
+    private IntPtr _hookMoveSize  = IntPtr.Zero;
+    private IntPtr _hookLocation  = IntPtr.Zero;
+    private WinEventDelegate? _procMoveSize;
+    private WinEventDelegate? _procLocation;
     private SnappingSettings _settings = new();
 
+    // Drag-tracking state (shared between the two hook callbacks)
+    private bool   _isDragging;
+    private IntPtr _draggingHwnd;
+    private volatile bool _applyingSnap; // prevent SetWindowPos re-entrancy
+
     /// <summary>
-    /// Starts the background window management loops/hooks.
-    /// Call this from App startup or MainWindow loaded.
+    /// Starts snapping hooks. Always registers the MOVESIZESTART/END hook;
+    /// also registers the LOCATIONCHANGE hook when StickySnapping is enabled.
     /// </summary>
     public void StartBackgroundServices(SnappingSettings settings)
     {
         ReloadSettings(settings);
 
-        // Prevent garbage collection of the delegate
-        _winEventProc = new WinEventDelegate(WinEventProc);
-        _winEventHook = SetWinEventHook(
-            EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MOVESIZEEND,
-            IntPtr.Zero, _winEventProc,
-            0, 0, WINEVENT_OUTOFCONTEXT);
+        _procMoveSize = MoveSizeProc;
+        _hookMoveSize = SetWinEventHook(
+            EVENT_SYSTEM_MOVESIZESTART, EVENT_SYSTEM_MOVESIZEEND,
+            IntPtr.Zero, _procMoveSize, 0, 0, WINEVENT_OUTOFCONTEXT);
+
+        if (_settings.StickySnapping)
+            RegisterLocationHook();
     }
 
     public void StopBackgroundServices()
     {
-        if (_winEventHook != IntPtr.Zero)
-        {
-            UnhookWinEvent(_winEventHook);
-            _winEventHook = IntPtr.Zero;
-        }
+        if (_hookMoveSize != IntPtr.Zero) { UnhookWinEvent(_hookMoveSize); _hookMoveSize = IntPtr.Zero; }
+        UnregisterLocationHook();
+    }
+
+    private void RegisterLocationHook()
+    {
+        if (_hookLocation != IntPtr.Zero) return;
+        _procLocation ??= LocationChangeProc;
+        _hookLocation = SetWinEventHook(
+            EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE,
+            IntPtr.Zero, _procLocation, 0, 0, WINEVENT_OUTOFCONTEXT);
+    }
+
+    private void UnregisterLocationHook()
+    {
+        if (_hookLocation == IntPtr.Zero) return;
+        UnhookWinEvent(_hookLocation);
+        _hookLocation = IntPtr.Zero;
     }
 
     /// <summary>
@@ -193,78 +219,148 @@ public class WindowManagementService
 
     public void ReloadSettings(SnappingSettings settings)
     {
-        if (settings != null)
+        if (settings != null) _settings = settings;
+        if (_hookMoveSize == IntPtr.Zero) return; // not yet started
+
+        if (_settings.StickySnapping)
+            RegisterLocationHook();
+        else
+            UnregisterLocationHook();
+    }
+
+    // ── Hook callbacks ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fires on EVENT_SYSTEM_MOVESIZESTART and EVENT_SYSTEM_MOVESIZEEND.
+    /// Tracks whether a drag is in progress and applies a final snap on release.
+    /// </summary>
+    private void MoveSizeProc(IntPtr hook, uint eventType, IntPtr hwnd,
+        int idObject, int idChild, uint thread, uint time)
+    {
+        if (hwnd == IntPtr.Zero) return;
+
+        if (eventType == EVENT_SYSTEM_MOVESIZESTART)
         {
-            _settings = settings;
+            _isDragging   = true;
+            _draggingHwnd = hwnd;
+        }
+        else if (eventType == EVENT_SYSTEM_MOVESIZEEND)
+        {
+            _isDragging   = false;
+            _draggingHwnd = IntPtr.Zero;
+            // Always run a final correction pass when the mouse button is released.
+            TrySnap(hwnd);
         }
     }
 
-    private void WinEventProc(IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
-        int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+    /// <summary>
+    /// Fires on every pixel of movement — only registered when StickySnapping is on.
+    /// Applies snap continuously during the drag so the user sees it happen live.
+    /// </summary>
+    private void LocationChangeProc(IntPtr hook, uint eventType, IntPtr hwnd,
+        int idObject, int idChild, uint thread, uint time)
     {
-        if (!_settings.Enabled || hwnd == IntPtr.Zero) return;
+        if (idObject != OBJID_WINDOW) return;        // ignore non-window objects (controls, tooltips…)
+        if (!_isDragging || hwnd != _draggingHwnd) return;
+        if (_applyingSnap) return;                   // our own SetWindowPos would re-fire this
+        TrySnap(hwnd);
+    }
 
-        // Check if Shift is held down and Bypass is enabled
-        if (_settings.BypassWithShift)
-        {
-            short shiftState = GetAsyncKeyState(VK_SHIFT);
-            if ((shiftState & 0x8000) != 0) return; // Shift is down
-        }
+    // ── Core snap logic ────────────────────────────────────────────────────────
 
-        // Check ignored processes
+    /// <summary>
+    /// Checks all snap targets (monitor edges + other windows) and repositions
+    /// the window if any edge is within the configured snap distance.
+    /// </summary>
+    private void TrySnap(IntPtr hwnd)
+    {
+        if (!_settings.Enabled || hwnd == IntPtr.Zero || _applyingSnap) return;
+
+        if (_settings.BypassWithShift && (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0) return;
+
         if (_settings.IgnoredProcesses.Count > 0)
         {
             GetWindowThreadProcessId(hwnd, out uint pid);
             try
             {
-                var process = Process.GetProcessById((int)pid);
-                if (_settings.IgnoredProcesses.Contains(process.ProcessName, StringComparer.OrdinalIgnoreCase))
-                {
+                var proc = Process.GetProcessById((int)pid);
+                if (_settings.IgnoredProcesses.Contains(proc.ProcessName, StringComparer.OrdinalIgnoreCase))
                     return;
-                }
             }
-            catch { /* Process might have exited */ }
+            catch { /* process may have exited */ }
         }
 
-        GetWindowRect(hwnd, out var rect);
-        int width = rect.Right - rect.Left;
+        if (!GetWindowRect(hwnd, out var rect)) return;
+
+        int width  = rect.Right  - rect.Left;
         int height = rect.Bottom - rect.Top;
-
         int newLeft = rect.Left;
-        int newTop = rect.Top;
+        int newTop  = rect.Top;
         bool snapped = false;
+        int d = _settings.SnapDistance;
 
-        // Snapping to monitor edges
+        // ── Monitor edges ──────────────────────────────────────────────────────
         if (_settings.SnapToMonitorEdges)
         {
-            var monitors = _monitorService.GetAllMonitors();
-            int snapDist = _settings.SnapDistance;
-
-            foreach (var monitor in monitors)
+            foreach (var m in _monitorService.GetAllMonitors())
             {
-                // Left edge snap
-                if (Math.Abs(rect.Left - monitor.Bounds.Left) < snapDist) { newLeft = monitor.Bounds.Left; snapped = true; }
-                else if (Math.Abs(rect.Right - monitor.Bounds.Left) < snapDist) { newLeft = monitor.Bounds.Left - width; snapped = true; }
-                
-                // Right edge snap
-                if (Math.Abs(rect.Right - monitor.Bounds.Right) < snapDist) { newLeft = monitor.Bounds.Right - width; snapped = true; }
-                else if (Math.Abs(rect.Left - monitor.Bounds.Right) < snapDist) { newLeft = monitor.Bounds.Right; snapped = true; }
-                
-                // Top edge snap
-                if (Math.Abs(rect.Top - monitor.Bounds.Top) < snapDist) { newTop = monitor.Bounds.Top; snapped = true; }
-                else if (Math.Abs(rect.Bottom - monitor.Bounds.Top) < snapDist) { newTop = monitor.Bounds.Top - height; snapped = true; }
-                
-                // Bottom edge snap
-                if (Math.Abs(rect.Bottom - monitor.Bounds.Bottom) < snapDist) { newTop = monitor.Bounds.Bottom - height; snapped = true; }
-                else if (Math.Abs(rect.Top - monitor.Bounds.Bottom) < snapDist) { newTop = monitor.Bounds.Bottom; snapped = true; }
+                if      (Math.Abs(rect.Left   - m.Bounds.Left)   < d) { newLeft = m.Bounds.Left;            snapped = true; }
+                else if (Math.Abs(rect.Right  - m.Bounds.Left)   < d) { newLeft = m.Bounds.Left   - width;  snapped = true; }
+                if      (Math.Abs(rect.Right  - m.Bounds.Right)  < d) { newLeft = m.Bounds.Right  - width;  snapped = true; }
+                else if (Math.Abs(rect.Left   - m.Bounds.Right)  < d) { newLeft = m.Bounds.Right;           snapped = true; }
+                if      (Math.Abs(rect.Top    - m.Bounds.Top)    < d) { newTop  = m.Bounds.Top;             snapped = true; }
+                else if (Math.Abs(rect.Bottom - m.Bounds.Top)    < d) { newTop  = m.Bounds.Top    - height; snapped = true; }
+                if      (Math.Abs(rect.Bottom - m.Bounds.Bottom) < d) { newTop  = m.Bounds.Bottom - height; snapped = true; }
+                else if (Math.Abs(rect.Top    - m.Bounds.Bottom) < d) { newTop  = m.Bounds.Bottom;          snapped = true; }
             }
         }
 
-        // Apply snapping
-        if (snapped)
+        // ── Other window edges ─────────────────────────────────────────────────
+        if (_settings.SnapToOtherWindows)
         {
-            SetWindowPos(hwnd, IntPtr.Zero, newLeft, newTop, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
+            foreach (var other in GetSnapCandidateWindows(hwnd))
+            {
+                if (!GetWindowRect(other, out var o)) continue;
+
+                // Align opposing edges (window tiles flush against neighbour)
+                if      (Math.Abs(rect.Left   - o.Right)  < d) { newLeft = o.Right;          snapped = true; }
+                else if (Math.Abs(rect.Right  - o.Left)   < d) { newLeft = o.Left   - width; snapped = true; }
+                // Align same-side edges (window aligns to neighbour's left or right)
+                else if (Math.Abs(rect.Left   - o.Left)   < d) { newLeft = o.Left;           snapped = true; }
+                else if (Math.Abs(rect.Right  - o.Right)  < d) { newLeft = o.Right  - width; snapped = true; }
+
+                if      (Math.Abs(rect.Top    - o.Bottom) < d) { newTop  = o.Bottom;         snapped = true; }
+                else if (Math.Abs(rect.Bottom - o.Top)    < d) { newTop  = o.Top    - height; snapped = true; }
+                else if (Math.Abs(rect.Top    - o.Top)    < d) { newTop  = o.Top;            snapped = true; }
+                else if (Math.Abs(rect.Bottom - o.Bottom) < d) { newTop  = o.Bottom - height; snapped = true; }
+            }
         }
+
+        if (!snapped) return;
+
+        _applyingSnap = true;
+        try   { SetWindowPos(hwnd, IntPtr.Zero, newLeft, newTop, width, height, SWP_NOZORDER | SWP_NOACTIVATE); }
+        finally { _applyingSnap = false; }
+    }
+
+    /// <summary>
+    /// Returns all visible top-level application windows except the one being dragged.
+    /// Skips tool windows (palettes, dropdowns) and untitled windows.
+    /// </summary>
+    private List<IntPtr> GetSnapCandidateWindows(IntPtr excludeHwnd)
+    {
+        var result = new List<IntPtr>();
+        EnumWindows((h, _) =>
+        {
+            if (h == excludeHwnd || !IsWindowVisible(h)) return true;
+            int exStyle = GetWindowLong(h, GWL_EXSTYLE);
+            if ((exStyle & 0x00000080) != 0) return true; // WS_EX_TOOLWINDOW
+            var sb = new StringBuilder(256);
+            if (GetWindowText(h, sb, 256) == 0) return true;
+            result.Add(h);
+            return true;
+        }, IntPtr.Zero);
+        return result;
     }
 
 

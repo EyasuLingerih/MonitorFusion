@@ -46,10 +46,8 @@
                     <TextBlock Text="Scaled diagram of your physical monitor layout"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="12" Margin="0,0,0,12"/>
-                    <Border Background="#141420" CornerRadius="4" Height="130">
-                        <Canvas x:Name="ArrangementCanvas"
-                                SizeChanged="ArrangementCanvas_SizeChanged"/>
-                    </Border>
+                    <Border x:Name="ArrangementBorder"
+                            Background="#141420" CornerRadius="4" Height="130"/>
                 </StackPanel>
             </Border>
 

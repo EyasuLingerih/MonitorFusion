@@ -164,6 +164,8 @@
                         Click="NavTaskbar_Click"/>
                 <Button Content="🗂️  Window Layouts" Style="{StaticResource NavButton}"
                         Click="NavWindowLayouts_Click"/>
+                <Button Content="⬛  Zone Layouts" Style="{StaticResource NavButton}"
+                        Click="NavZones_Click"/>
                 <Button Content="🌙  Focus Mode" Style="{StaticResource NavButton}"
                         Click="NavFading_Click"/>
                 <Button Content="⚙️  Settings" Style="{StaticResource NavButton}"

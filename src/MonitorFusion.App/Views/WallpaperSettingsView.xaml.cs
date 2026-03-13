@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using MonitorFusion.Core.Models;
 using MonitorFusion.Core.Services;
@@ -74,7 +75,7 @@ public partial class WallpaperSettingsView : UserControl
         SepiaCheck.IsChecked = config.Adjustments.Sepia;
         InvertCheck.IsChecked = config.Adjustments.Invert;
 
-        ImagePreviewPlaceholder.Text = string.IsNullOrEmpty(config.Source) ? "Click to select image" : System.IO.Path.GetFileName(config.Source);
+        SetPreviewImage(config.Source);
 
         _isInitializing = false;
     }
@@ -113,7 +114,41 @@ public partial class WallpaperSettingsView : UserControl
             }
 
             config.Source = dialog.FileName;
-            ImagePreviewPlaceholder.Text = System.IO.Path.GetFileName(config.Source);
+            SetPreviewImage(config.Source);
+        }
+    }
+
+    private void SetPreviewImage(string? path)
+    {
+        if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
+        {
+            ImagePreview.Source = null;
+            ImagePreview.Visibility = Visibility.Collapsed;
+            ImagePreviewPlaceholder.Text = "Click to select image";
+            ImagePreviewPlaceholder.Visibility = Visibility.Visible;
+            return;
+        }
+
+        try
+        {
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(path);
+            bitmap.DecodePixelWidth = 400;   // decode a thumbnail — don't load full res
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+
+            ImagePreview.Source = bitmap;
+            ImagePreview.Visibility = Visibility.Visible;
+            ImagePreviewPlaceholder.Visibility = Visibility.Collapsed;
+        }
+        catch
+        {
+            ImagePreview.Source = null;
+            ImagePreview.Visibility = Visibility.Collapsed;
+            ImagePreviewPlaceholder.Text = "Cannot load image";
+            ImagePreviewPlaceholder.Visibility = Visibility.Visible;
         }
     }
 

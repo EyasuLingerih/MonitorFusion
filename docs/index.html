@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonitorFusion — Multi-Monitor Management for Windows</title>
-  <meta name="description" content="Free and open-source multi-monitor management for Windows. Set per-monitor wallpapers, move windows with hotkeys, and snap windows to monitor edges." />
+  <meta name="description" content="Free and open-source multi-monitor management for Windows. Zone layouts, per-monitor wallpapers, hotkey window movement, and magnetic window snapping." />
   <link rel="icon" href="assets/favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,6 +25,7 @@
       </a>
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
+        <li><a href="#install">Install</a></li>
         <li><a href="#screenshots">Screenshots</a></li>
         <li><a href="#roadmap">Roadmap</a></li>
         <li><a href="https://github.com/EyasuLingerih/MonitorFusion" class="nav-github" target="_blank" rel="noopener">
@@ -41,18 +42,19 @@
       <div class="hero-badge">Open Source · Free · Windows 10/11</div>
       <h1 class="hero-title">Multi-Monitor Management<br /><span class="hero-accent">Made Easy</span></h1>
       <p class="hero-sub">
-        MonitorFusion gives you per-monitor wallpapers, hotkey window movement, and edge snapping —
-        all in a lightweight open-source app. A modern alternative to DisplayFusion.
+        MonitorFusion gives you virtual zone layouts, per-monitor wallpapers, hotkey window
+        movement, and magnetic snapping — all in a lightweight open-source app that lives in
+        your system tray. A free alternative to DisplayFusion and FancyZones.
       </p>
       <div class="hero-actions">
-        <a href="https://github.com/EyasuLingerih/MonitorFusion/releases" class="btn btn-primary" target="_blank" rel="noopener">
-          Download for Windows
+        <a href="https://github.com/EyasuLingerih/MonitorFusion/releases/latest" class="btn btn-primary" target="_blank" rel="noopener">
+          ⬇ Download Installer
         </a>
         <a href="https://github.com/EyasuLingerih/MonitorFusion" class="btn btn-ghost" target="_blank" rel="noopener">
           View on GitHub
         </a>
       </div>
-      <p class="hero-note">Requires Windows 10/11 · .NET 8 Runtime</p>
+      <p class="hero-note">Windows 10 / 11 · No prerequisites · ~30 MB · Free &amp; open source</p>
     </div>
 
     <!-- Monitor illustration -->
@@ -71,8 +73,11 @@
           <div class="monitor-screen screen-b">
             <div class="screen-content">
               <div class="screen-bar"></div>
-              <div class="screen-window wide"></div>
-              <div class="screen-window small"></div>
+              <div class="screen-zones">
+                <div class="zone zone-1"></div>
+                <div class="zone zone-2"></div>
+                <div class="zone zone-3"></div>
+              </div>
             </div>
           </div>
           <div class="monitor-stand"></div>
@@ -96,36 +101,145 @@
       <h2 class="section-title">Everything you need for a multi-monitor setup</h2>
       <p class="section-sub">Built with C# and WPF, designed to be fast, lightweight, and extensible.</p>
       <div class="features-grid">
+
+        <div class="feature-card feature-highlight">
+          <div class="feature-icon">⬛</div>
+          <h3>Zone Layouts</h3>
+          <p>Divide any monitor into custom zones — halves, thirds, quadrants, ultrawide splits, or fully custom. Drag a window and it snaps to fill the hovered zone. Each zone gets its own slim taskbar. A free alternative to FancyZones and DisplayFusion's virtual monitor splitting.</p>
+        </div>
+
         <div class="feature-card">
           <div class="feature-icon">🖼️</div>
           <h3>Per-Monitor Wallpapers</h3>
-          <p>Set a different wallpaper on each display. Save and switch between wallpaper profiles instantly.</p>
+          <p>Set a different wallpaper on each display. Save and switch between named profiles instantly. Thumbnail preview and timed auto-rotation from a folder.</p>
         </div>
+
         <div class="feature-card">
           <div class="feature-icon">⌨️</div>
           <h3>Hotkey Window Movement</h3>
-          <p>Move any window to the next or previous monitor with a single keypress. Fully configurable shortcuts.</p>
+          <p>Move any window to the next or previous monitor with a single keypress. Center, maximize, span across monitors. Fully configurable shortcuts.</p>
         </div>
+
         <div class="feature-card">
           <div class="feature-icon">🧲</div>
-          <h3>Window Snapping</h3>
-          <p>Windows snap to monitor edges and to each other, making it easy to organize your workspace.</p>
+          <h3>Magnetic Window Snapping</h3>
+          <p>Windows snap to monitor edges and to each other as you drag. Sticky snapping keeps them aligned during drag. Bypass with Shift. Configure distance and ignored apps.</p>
         </div>
+
         <div class="feature-card">
           <div class="feature-icon">📐</div>
           <h3>Monitor Profiles</h3>
-          <p>Save and restore complete monitor configurations — resolution, position, and orientation.</p>
+          <p>Save and restore complete monitor configurations — resolution, position, refresh rate, and orientation. Switch between desk and laptop mode instantly.</p>
         </div>
+
         <div class="feature-card">
           <div class="feature-icon">💾</div>
-          <h3>Window Position Profiles</h3>
+          <h3>Window Layout Profiles</h3>
           <p>Save all open window positions and restore them when you reconnect your displays.</p>
         </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🖥️</div>
+          <h3>Multi-Monitor Taskbar</h3>
+          <p>Custom taskbar on secondary monitors showing only that screen's windows. Per-zone taskbars when using zone layouts.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🌙</div>
+          <h3>Focus Mode</h3>
+          <p>Dim inactive monitors so your eyes stay on the active screen. Configurable opacity, toggle with a hotkey.</p>
+        </div>
+
         <div class="feature-card">
           <div class="feature-icon">🪶</div>
           <h3>Lightweight by Design</h3>
-          <p>Built on .NET 8 with a minimal footprint. Lives quietly in your system tray until you need it.</p>
+          <p>~30 MB self-contained installer, no .NET prerequisite. Lives quietly in your system tray and uses minimal CPU and RAM.</p>
         </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section class="compare section">
+    <div class="container">
+      <h2 class="section-title">How it compares</h2>
+      <p class="section-sub">MonitorFusion is free and open source — no subscriptions, no nag screens.</p>
+      <div class="compare-table-wrap">
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="ours">MonitorFusion</th>
+              <th>DisplayFusion</th>
+              <th>FancyZones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Zone / virtual monitor splitting</td><td class="ours">✅ Free</td><td>✅ Paid</td><td>✅ Free</td></tr>
+            <tr><td>Per-monitor wallpapers</td><td class="ours">✅ Free</td><td>✅ Paid</td><td>❌</td></tr>
+            <tr><td>Multi-monitor taskbar</td><td class="ours">✅ Free</td><td>✅ Paid</td><td>❌</td></tr>
+            <tr><td>Window layout profiles</td><td class="ours">✅ Free</td><td>✅ Paid</td><td>❌</td></tr>
+            <tr><td>Monitor profiles</td><td class="ours">✅ Free</td><td>✅ Paid</td><td>❌</td></tr>
+            <tr><td>Focus mode (dim inactive)</td><td class="ours">✅ Free</td><td>✅ Paid</td><td>❌</td></tr>
+            <tr><td>Open source</td><td class="ours">✅ MIT</td><td>❌</td><td>✅ MIT</td></tr>
+            <tr><td>Price</td><td class="ours"><strong>Free</strong></td><td>$29+ / year</td><td>Free</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section class="install section" id="install">
+    <div class="container">
+      <h2 class="section-title">Install in seconds</h2>
+      <p class="section-sub">One installer, no prerequisites — .NET is bundled inside.</p>
+
+      <div class="install-steps">
+        <div class="install-step">
+          <div class="install-num">1</div>
+          <div class="install-body">
+            <h3>Download the installer</h3>
+            <p>Click <strong>Download Installer</strong> above. The setup file is ~30 MB and works on Windows 10 and 11 (64-bit).</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-num">2</div>
+          <div class="install-body">
+            <h3>Run <code>MonitorFusion-Setup-x.x.x.exe</code></h3>
+            <p>No admin rights required. The installer will close any running instance automatically before upgrading.</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-num">3</div>
+          <div class="install-body">
+            <h3>Choose your options</h3>
+            <p>Pick what you want during setup:</p>
+            <ul class="install-options">
+              <li>✅ <strong>Start with Windows</strong> — launches silently to tray on login</li>
+              <li>✅ <strong>Desktop shortcut</strong> — optional, off by default</li>
+              <li>✅ <strong>Desktop right-click menu</strong> — adds <em>Open MonitorFusion</em> when you right-click the desktop</li>
+            </ul>
+          </div>
+        </div>
+        <div class="install-step">
+          <div class="install-num">4</div>
+          <div class="install-body">
+            <h3>You're done</h3>
+            <p>MonitorFusion launches automatically after install. Find it in the system tray or search <em>MonitorFusion</em> in the Start Menu.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-note">
+        <strong>Uninstall anytime</strong> via Settings → Apps → MonitorFusion. The uninstaller will ask whether to keep or delete your saved profiles and settings.
+      </div>
+
+      <div style="text-align:center; margin-top: 32px;">
+        <a href="https://github.com/EyasuLingerih/MonitorFusion/releases/latest" class="btn btn-primary" target="_blank" rel="noopener">
+          ⬇ Download Installer
+        </a>
       </div>
     </div>
   </section>
@@ -134,27 +248,27 @@
   <section class="screenshots section" id="screenshots">
     <div class="container">
       <h2 class="section-title">Screenshots</h2>
-      <p class="section-sub">Screenshots will appear here as the app reaches each milestone.</p>
+      <p class="section-sub">Screenshots will be added with the v1.0 release.</p>
       <div class="screenshots-grid">
         <div class="screenshot-placeholder">
           <div class="placeholder-inner">
-            <span class="placeholder-icon">🖥️</span>
-            <span>System Tray &amp; Quick Menu</span>
-            <span class="placeholder-phase">Coming in Phase 1</span>
+            <span class="placeholder-icon">⬛</span>
+            <span>Zone Layout Editor</span>
+            <span class="placeholder-phase">v1.0</span>
           </div>
         </div>
         <div class="screenshot-placeholder">
           <div class="placeholder-inner">
             <span class="placeholder-icon">🖼️</span>
             <span>Wallpaper Settings</span>
-            <span class="placeholder-phase">Coming in Phase 2</span>
+            <span class="placeholder-phase">v1.0</span>
           </div>
         </div>
         <div class="screenshot-placeholder">
           <div class="placeholder-inner">
-            <span class="placeholder-icon">⌨️</span>
-            <span>Hotkey Configuration</span>
-            <span class="placeholder-phase">Coming in Phase 3</span>
+            <span class="placeholder-icon">🖥️</span>
+            <span>Monitor Arrangement</span>
+            <span class="placeholder-phase">v1.0</span>
           </div>
         </div>
       </div>
@@ -165,62 +279,78 @@
   <section class="roadmap section" id="roadmap">
     <div class="container">
       <h2 class="section-title">Roadmap</h2>
-      <p class="section-sub">MonitorFusion is in active development. Here's what's planned.</p>
+      <p class="section-sub">MonitorFusion is in active development. Here's what's shipped and what's next.</p>
       <div class="roadmap-list">
         <div class="roadmap-item status-done">
           <div class="roadmap-status"></div>
           <div class="roadmap-content">
-            <span class="roadmap-phase">Foundation</span>
-            <h3>Project structure &amp; architecture</h3>
-            <p>Core services, Win32 interop layer, WPF shell, system tray icon.</p>
+            <span class="roadmap-phase">Shipped</span>
+            <h3>Core architecture &amp; shell</h3>
+            <p>Core services, Win32 interop layer, WPF shell, system tray, crash logging, single-instance guard.</p>
           </div>
         </div>
-        <div class="roadmap-item status-active">
+        <div class="roadmap-item status-done">
           <div class="roadmap-status"></div>
           <div class="roadmap-content">
-            <span class="roadmap-phase">Phase 1</span>
-            <h3>Monitor detection + basic wallpaper</h3>
-            <p>Enumerate displays, detect changes, set per-monitor wallpapers via IDesktopWallpaper COM.</p>
+            <span class="roadmap-phase">Shipped</span>
+            <h3>Monitor detection &amp; profiles</h3>
+            <p>Live monitor enumeration, DPI detection, EDID name reading, arrangement diagram, save/restore configurations.</p>
           </div>
         </div>
-        <div class="roadmap-item status-pending">
+        <div class="roadmap-item status-done">
           <div class="roadmap-status"></div>
           <div class="roadmap-content">
-            <span class="roadmap-phase">Phase 2</span>
-            <h3>Wallpaper profiles &amp; rotation</h3>
-            <p>Named profiles, image sizing modes, random rotation from folder, online sources.</p>
+            <span class="roadmap-phase">Shipped</span>
+            <h3>Wallpaper management</h3>
+            <p>Per-monitor wallpapers, named profiles, image thumbnail preview, rotation from folder on a timer.</p>
           </div>
         </div>
-        <div class="roadmap-item status-pending">
+        <div class="roadmap-item status-done">
           <div class="roadmap-status"></div>
           <div class="roadmap-content">
-            <span class="roadmap-phase">Phase 3</span>
+            <span class="roadmap-phase">Shipped</span>
             <h3>Window management &amp; snapping</h3>
-            <p>Global hotkeys, move windows between monitors, snap to edges, save/restore layouts.</p>
+            <p>Global hotkeys, move windows between monitors, magnetic snap to edges and other windows, sticky snapping, save/restore window position profiles.</p>
+          </div>
+        </div>
+        <div class="roadmap-item status-done">
+          <div class="roadmap-status"></div>
+          <div class="roadmap-content">
+            <span class="roadmap-phase">Shipped</span>
+            <h3>Zone layout engine</h3>
+            <p>Virtual monitor splitting with preset and custom zone layouts. Drag-to-snap with real-time overlay, per-zone taskbar, zone layout editor with live canvas preview.</p>
+          </div>
+        </div>
+        <div class="roadmap-item status-done">
+          <div class="roadmap-status"></div>
+          <div class="roadmap-content">
+            <span class="roadmap-phase">Shipped</span>
+            <h3>Multi-monitor taskbar &amp; Focus mode</h3>
+            <p>Custom taskbar on secondary monitors, focus mode dimming for inactive monitors.</p>
+          </div>
+        </div>
+        <div class="roadmap-item status-done">
+          <div class="roadmap-status"></div>
+          <div class="roadmap-content">
+            <span class="roadmap-phase">Shipped</span>
+            <h3>Installer &amp; shell integration</h3>
+            <p>Self-contained Windows installer (~30 MB, no .NET required), desktop right-click menu entry, Start Menu shortcuts, clean uninstaller with optional settings removal.</p>
           </div>
         </div>
         <div class="roadmap-item status-pending">
           <div class="roadmap-status"></div>
           <div class="roadmap-content">
-            <span class="roadmap-phase">Phase 4</span>
-            <h3>Monitor profiles</h3>
-            <p>Save/load display configurations, auto-switch on display change.</p>
+            <span class="roadmap-phase">Planned</span>
+            <h3>Auto-update &amp; release pipeline</h3>
+            <p>In-app update notifications, GitHub Releases integration, signed installer.</p>
           </div>
         </div>
         <div class="roadmap-item status-pending">
           <div class="roadmap-status"></div>
           <div class="roadmap-content">
-            <span class="roadmap-phase">Phase 5</span>
-            <h3>Multi-monitor taskbar</h3>
-            <p>Custom taskbar on secondary monitors with live thumbnails and pinned shortcuts.</p>
-          </div>
-        </div>
-        <div class="roadmap-item status-pending">
-          <div class="roadmap-status"></div>
-          <div class="roadmap-content">
-            <span class="roadmap-phase">Phase 6</span>
-            <h3>Installer, auto-update &amp; polish</h3>
-            <p>InnoSetup installer, Squirrel auto-updates, settings UI refinements.</p>
+            <span class="roadmap-phase">Planned</span>
+            <h3>Zone app launcher</h3>
+            <p>Pin apps to zones. Click to open directly into that zone. Each zone behaves like a dedicated virtual desktop.</p>
           </div>
         </div>
       </div>
@@ -230,10 +360,10 @@
   <!-- CTA -->
   <section class="cta section">
     <div class="container cta-inner">
-      <h2>Ready to get started?</h2>
-      <p>MonitorFusion is free and open source. Star the repo, report bugs, or contribute code.</p>
+      <h2>Ready to take control of your monitors?</h2>
+      <p>MonitorFusion is free and open source. Download the installer, star the repo, or contribute code.</p>
       <div class="hero-actions">
-        <a href="https://github.com/EyasuLingerih/MonitorFusion/releases" class="btn btn-primary" target="_blank" rel="noopener">Download</a>
+        <a href="https://github.com/EyasuLingerih/MonitorFusion/releases/latest" class="btn btn-primary" target="_blank" rel="noopener">⬇ Download Installer</a>
         <a href="https://github.com/EyasuLingerih/MonitorFusion" class="btn btn-ghost" target="_blank" rel="noopener">Star on GitHub</a>
       </div>
     </div>

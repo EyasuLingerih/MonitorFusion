@@ -1,0 +1,147 @@
+<UserControl x:Class="MonitorFusion.App.Views.ZoneLayoutEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="900"
+             Background="Transparent">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,0,10,0">
+
+            <!-- Header -->
+            <TextBlock Text="Zone Layouts"
+                       Foreground="{StaticResource TextBrush}"
+                       FontSize="24" FontWeight="Bold" Margin="0,0,0,6"/>
+            <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="0,0,0,20"
+                       Text="Divide monitors into zones. Drag any window — zones glow when hovered. Release to snap the window into that zone."/>
+
+            <!-- Global Settings -->
+            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Settings" Foreground="{StaticResource TextBrush}"
+                               FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <CheckBox x:Name="EnabledCheck" Content="Enable Zone Layouts"
+                              Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"
+                              Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <CheckBox x:Name="OverlayCheck" Content="Show zone overlay while dragging"
+                              Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"
+                              Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <CheckBox x:Name="TaskbarsCheck" Content="Show per-zone taskbar"
+                              Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"
+                              Checked="Settings_Changed" Unchecked="Settings_Changed"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="Activation:" Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox x:Name="TriggerCombo" Width="160"
+                                  SelectionChanged="Settings_Changed">
+                            <ComboBoxItem Content="Always active" Tag="None"/>
+                            <ComboBoxItem Content="Hold Shift" Tag="Shift"/>
+                            <ComboBoxItem Content="Hold Ctrl"  Tag="Ctrl"/>
+                        </ComboBox>
+                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
+                                   VerticalAlignment="Center" Margin="10,0,0,0"
+                                   Text="(key to hold for zone snap to activate)"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Monitor Selector -->
+            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Monitor" Foreground="{StaticResource TextBrush}"
+                               FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                    <StackPanel Orientation="Horizontal">
+                        <ComboBox x:Name="MonitorCombo" Width="320"
+                                  SelectionChanged="MonitorCombo_SelectionChanged"/>
+                        <Button Content="Refresh Monitors" Style="{StaticResource ModernButton}"
+                                Margin="10,0,0,0" Click="RefreshMonitors_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Zone Preview + Presets -->
+            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Zone Preview" Foreground="{StaticResource TextBrush}"
+                               FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                    <!-- Canvas preview -->
+                    <Border x:Name="PreviewBorder" Background="#141420" CornerRadius="4"
+                            Height="180" Margin="0,0,0,14" HorizontalAlignment="Left"
+                            ClipToBounds="True">
+                        <Canvas x:Name="PreviewCanvas"/>
+                    </Border>
+
+                    <!-- Presets -->
+                    <TextBlock Text="Presets" Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="12" Margin="0,0,0,8"/>
+                    <WrapPanel>
+                        <Button Content="Halves ◫" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="HalvesH" Click="Preset_Click"/>
+                        <Button Content="Halves ⬒" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="HalvesV" Click="Preset_Click"/>
+                        <Button Content="Thirds ◫◫" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="ThirdsH" Click="Preset_Click"/>
+                        <Button Content="Thirds ⬒⬒" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="ThirdsV" Click="Preset_Click"/>
+                        <Button Content="Quadrants ⊞" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="Quadrants" Click="Preset_Click"/>
+                        <Button Content="Ultrawide ◫◫◫" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="Ultrawide" Click="Preset_Click"/>
+                        <Button Content="Focus + Sides" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Tag="FocusSides" Click="Preset_Click"/>
+                        <Button Content="+ Custom Zone" Style="{StaticResource ModernButton}"
+                                Margin="0,0,8,8" Click="AddCustomZone_Click"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Zone List -->
+            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Zones" Foreground="{StaticResource TextBrush}"
+                               FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"
+                               Margin="0,0,0,12"
+                               Text="Left%, Top%, Width%, Height% — all values 0–100"/>
+
+                    <!-- Column headers -->
+                    <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="70"/>
+                            <ColumnDefinition Width="36"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="1" Text="Name" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Grid.Column="2" Text="Left %" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Grid.Column="3" Text="Top %" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Grid.Column="4" Text="Width %" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                        <TextBlock Grid.Column="5" Text="Height %" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11"/>
+                    </Grid>
+
+                    <ItemsControl x:Name="ZoneList"/>
+
+                    <TextBlock x:Name="NoZonesLabel"
+                               Text="No zones defined. Select a preset or add a custom zone above."
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontStyle="Italic" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Action buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Clear All" Style="{StaticResource ModernButton}"
+                        Margin="0,0,10,0" Click="ClearZones_Click"/>
+                <Button Content="Save Layout" Style="{StaticResource ModernButton}"
+                        Background="{StaticResource AccentBrush}" Click="Save_Click"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

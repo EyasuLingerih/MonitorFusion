@@ -1,0 +1,99 @@
+name: Build & Release Installer
+
+on:
+  push:
+    tags:
+      - "v*.*.*"   # triggers on v1.0.0, v1.2.3, etc.
+
+permissions:
+  contents: write   # needed to create the GitHub Release and upload assets
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Parse version from tag (strips leading "v") ─────────────────────
+      - name: Set version
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # ── 3. Setup .NET 8 SDK ────────────────────────────────────────────────
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # ── 4. Restore dependencies ────────────────────────────────────────────
+      - name: Restore
+        run: dotnet restore src/MonitorFusion.App/MonitorFusion.App.csproj
+
+      # ── 5. Publish self-contained single-file exe ──────────────────────────
+      - name: Publish
+        run: |
+          dotnet publish src/MonitorFusion.App/MonitorFusion.App.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:PublishReadyToRun=true `
+            -p:Version=${{ steps.version.outputs.VERSION }} `
+            -o publish
+
+      # ── 6. Install InnoSetup ───────────────────────────────────────────────
+      - name: Install InnoSetup
+        run: choco install innosetup --no-progress -y
+
+      # ── 7. Patch version in the .iss script ───────────────────────────────
+      - name: Patch installer version
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.VERSION }}"
+          (Get-Content installer/MonitorFusion.iss) `
+            -replace '#define AppVersion\s+"[^"]+"', "#define AppVersion `"$ver`"" |
+          Set-Content installer/MonitorFusion.iss
+
+      # ── 8. Compile installer ───────────────────────────────────────────────
+      - name: Build installer
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\MonitorFusion.iss
+
+      # ── 9. Rename output with version ──────────────────────────────────────
+      - name: Rename artifact
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.VERSION }}"
+          $src = "installer\output\MonitorFusion-Setup-$ver.exe"
+          $dst = "MonitorFusion-Setup-$ver.exe"
+          Move-Item $src $dst
+
+      # ── 10. Create GitHub Release and upload installer ──────────────────────
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "MonitorFusion v${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## MonitorFusion v${{ steps.version.outputs.VERSION }}
+
+            ### Install
+            Download **MonitorFusion-Setup-${{ steps.version.outputs.VERSION }}.exe** below and run it.
+            - No prerequisites — .NET is bundled inside (~30 MB)
+            - Works on Windows 10 and 11 (64-bit)
+            - No admin rights required
+
+            ### What's new
+            See the [commit history](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}) for details.
+
+            ### Uninstall
+            Settings → Apps → MonitorFusion, or via Start Menu → MonitorFusion → Uninstall.
+          files: "MonitorFusion-Setup-${{ steps.version.outputs.VERSION }}.exe"
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

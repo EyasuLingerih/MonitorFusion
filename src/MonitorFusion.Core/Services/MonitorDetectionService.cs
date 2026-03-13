@@ -186,18 +186,29 @@ public class MonitorDetectionService
                         // Second pass: query the adapter's specific attached monitor (index 0)
                         if (EnumDisplayDevices(adapterDevice.DeviceName, 0, ref monitorDevice, EDD_GET_DEVICE_INTERFACE_NAME))
                         {
-                            // The true hardware name is in DeviceString here
-                            monitor.FriendlyName = string.IsNullOrWhiteSpace(monitorDevice.DeviceString) 
-                                ? adapterDevice.DeviceString 
+                            monitor.FriendlyName = string.IsNullOrWhiteSpace(monitorDevice.DeviceString)
+                                ? adapterDevice.DeviceString
                                 : monitorDevice.DeviceString;
-
-                            // Clean up "Generic PnP Monitor" if a better name is available from EDID later,
-                            // but this inner call usually reliably returns the real name.
                         }
                         else
                         {
-                            // Fallback to adapter name (which might be "Generic PnP")
                             monitor.FriendlyName = adapterDevice.DeviceString;
+                        }
+
+                        // "Generic PnP Monitor" means the display driver doesn't know the model.
+                        // Try reading the EDID block directly from the registry — it contains
+                        // the real monitor name stored by the hardware.
+                        if (monitor.FriendlyName == "Generic PnP Monitor")
+                        {
+                            var monitorDeviceReg = new DISPLAY_DEVICE();
+                            monitorDeviceReg.cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE));
+                            // Call without EDD_GET_DEVICE_INTERFACE_NAME to get the registry-style device ID
+                            if (EnumDisplayDevices(adapterDevice.DeviceName, 0, ref monitorDeviceReg, 0))
+                            {
+                                var edidName = GetMonitorNameFromEdid(monitorDeviceReg.DeviceID);
+                                if (!string.IsNullOrWhiteSpace(edidName))
+                                    monitor.FriendlyName = edidName;
+                            }
                         }
                     }
                     else
@@ -298,6 +309,64 @@ public class MonitorDetectionService
         devMode = new DEVMODE();
         devMode.dmSize = (short)Marshal.SizeOf(typeof(DEVMODE));
         return EnumDisplaySettings(deviceName, ENUM_CURRENT_SETTINGS, ref devMode);
+    }
+
+    /// <summary>
+    /// Reads the monitor model name from its EDID block stored in the Windows registry.
+    /// Falls back to this when EnumDisplayDevices only returns "Generic PnP Monitor".
+    ///
+    /// deviceId is in the format from EnumDisplayDevices (no EDD_GET_DEVICE_INTERFACE_NAME flag):
+    ///   "MONITOR\HPN3385\{4d36e96e-e325-11ce-bfc1-08002be10318}\0001"
+    /// The instance key in the actual registry uses a different format, so we enumerate
+    /// all instances under HKLM\...\MONITOR\{hardwareId}\ instead of using the literal path.
+    /// </summary>
+    private static string? GetMonitorNameFromEdid(string deviceId)
+    {
+        if (string.IsNullOrEmpty(deviceId)) return null;
+
+        // Extract hardware ID — "MONITOR\HPN3385\..." → "HPN3385"
+        var parts = deviceId.Split('\\');
+        if (parts.Length < 2) return null;
+        string hardwareId = parts[1];
+        if (string.IsNullOrEmpty(hardwareId) || hardwareId == "Default_Monitor") return null;
+
+        string hardwareKeyPath = $@"SYSTEM\CurrentControlSet\Enum\MONITOR\{hardwareId}";
+        try
+        {
+            using var hardwareKey = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(hardwareKeyPath);
+            if (hardwareKey == null) return null;
+
+            // Enumerate all instance subkeys — actual format varies (e.g. "8&3a0b5678&0&UID262145")
+            foreach (string instanceName in hardwareKey.GetSubKeyNames())
+            {
+                using var instanceKey = hardwareKey.OpenSubKey(instanceName);
+                if (instanceKey?.OpenSubKey("Device Parameters")?.GetValue("EDID") is not byte[] edid
+                    || edid.Length < 128)
+                    continue;
+
+                // Parse 4 × 18-byte descriptor blocks starting at byte 54.
+                // Type 0xFC = Monitor Name descriptor; bytes [5–17] are the ASCII name.
+                for (int i = 0; i < 4; i++)
+                {
+                    int offset = 54 + i * 18;
+                    if (offset + 18 > edid.Length) break;
+
+                    if (edid[offset] == 0x00 && edid[offset + 1] == 0x00 &&
+                        edid[offset + 2] == 0x00 && edid[offset + 3] == 0xFC)
+                    {
+                        string name = System.Text.Encoding.ASCII
+                            .GetString(edid, offset + 5, 13)
+                            .TrimEnd('\n', '\r', ' ');
+
+                        if (!string.IsNullOrWhiteSpace(name))
+                            return name;
+                    }
+                }
+            }
+        }
+        catch { /* Registry access denied or EDID malformed — use fallback */ }
+
+        return null;
     }
 }
 
