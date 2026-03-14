@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using MonitorFusion.Core.Models;
 using MonitorFusion.Core.Services;
@@ -9,14 +10,12 @@ namespace MonitorFusion.App.Views;
 public partial class MonitorProfileSettingsView : UserControl
 {
     private List<MonitorInfo> _monitors = new();
-    private MonitorArrangementVisual? _arrangementVisual;
+    private readonly MonitorArrangementCanvas _arrangementCanvas = new();
 
     public MonitorProfileSettingsView()
     {
         InitializeComponent();
-        // Create the custom drawing element and inject it into the named Border
-        _arrangementVisual = new MonitorArrangementVisual();
-        ArrangementBorder.Child = _arrangementVisual;
+        ArrangementBorder.Child = _arrangementCanvas;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e) => Refresh();
@@ -35,7 +34,7 @@ public partial class MonitorProfileSettingsView : UserControl
 
         BuildMonitorCards(_monitors, settings.MonitorNicknames);
         LoadProfiles();
-        _arrangementVisual?.SetData(_monitors, settings.MonitorNicknames);
+        _arrangementCanvas.SetData(_monitors, settings.MonitorNicknames);
     }
 
     // ─── Monitor Cards ────────────────────────────────────────────────────────
@@ -423,7 +422,7 @@ public partial class MonitorProfileSettingsView : UserControl
 
         App.SettingsService.Save(settings);
 
-        _arrangementVisual?.SetData(_monitors, settings.MonitorNicknames);
+        _arrangementCanvas.SetData(_monitors, settings.MonitorNicknames);
     }
 
     private void IdentifyMonitor_Click(object sender, RoutedEventArgs e)
@@ -546,9 +545,26 @@ public partial class MonitorProfileSettingsView : UserControl
 
     private void ProfilesList_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
 
+    private void ApplyLayout_Click(object sender, RoutedEventArgs e)
+    {
+        var positions = _arrangementCanvas.GetCurrentPositions();
+        if (positions.Count == 0) return;
+
+        var (ok, msg) = App.MonitorProfileService.ApplyMonitorPositions(positions);
+        if (ok)
+        {
+            ShowTip("Monitor layout applied.");
+            Refresh();
+        }
+        else
+        {
+            MessageBox.Show(msg, "Apply Layout Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     private void ShowTip(string message)
     {
-        if (Application.Current.MainWindow is MainWindow mw)
+        if (Application.Current.Windows.OfType<MainWindow>().FirstOrDefault() is { } mw)
         {
             mw.TrayIcon.ShowBalloonTip("Monitors", message,
                 Hardcodet.Wpf.TaskbarNotification.BalloonIcon.Info);
@@ -557,33 +573,195 @@ public partial class MonitorProfileSettingsView : UserControl
 }
 
 /// <summary>
-/// Custom FrameworkElement that draws the monitor arrangement diagram using a hosted
-/// DrawingVisual (the canonical WPF pattern for custom rendering). Drawing is refreshed
-/// whenever data changes or the element is re-arranged (i.e. on resize).
+/// Draggable monitor arrangement. Uses FrameworkElement + DrawingVisual (proven WPF
+/// pattern) so ArrangeOverride always provides the correct size. Monitors are hit-tested
+/// manually and dragged by tracking their current canvas Rects.
 /// </summary>
-internal class MonitorArrangementVisual : FrameworkElement
+internal class MonitorArrangementCanvas : FrameworkElement
 {
     private readonly DrawingVisual _dv = new();
     private readonly VisualCollection _visuals;
 
-    private List<MonitorInfo> _monitors = new();
-    private Dictionary<string, string> _nicknames = new();
+    private List<MonitorInfo> _monitors = [];
+    private Dictionary<string, string> _nicknames = [];
 
-    private static readonly Typeface _typeface;
-    private static readonly SolidColorBrush _bgBrush;
-    private static readonly SolidColorBrush _accentBrush;
-    private static readonly SolidColorBrush _borderBrush;
-    private static readonly SolidColorBrush _textBrush;
-    private static readonly SolidColorBrush _subBrush;
+    // Scale / origin — recomputed in ArrangeOverride
+    private double _scale, _ox, _oy;
+    private int _minLeft, _minTop;
 
-    static MonitorArrangementVisual()
+    // Current canvas-space rects for each monitor (DeviceId → Rect)
+    private readonly Dictionary<string, Rect> _rects = [];
+
+    // Drag state
+    private string? _dragId;
+    private Point   _dragOffset;   // mouse position relative to rect top-left
+
+    private static readonly Typeface _tf = new("Segoe UI");
+    private const double SnapThreshold = 40;
+
+    public MonitorArrangementCanvas()
     {
-        _typeface    = new Typeface("Segoe UI");
-        _bgBrush     = Frozen(Color.FromRgb(0x2D, 0x2D, 0x3F));
-        _accentBrush = Frozen(Color.FromRgb(0x00, 0xA2, 0xED));
-        _borderBrush = Frozen(Color.FromRgb(0x4A, 0x4A, 0x6A));
-        _textBrush   = Frozen(Color.FromRgb(0xFF, 0xFF, 0xFF));
-        _subBrush    = Frozen(Color.FromRgb(0xA0, 0xA0, 0xB0));
+        _visuals = new VisualCollection(this);
+        _visuals.Add(_dv);
+    }
+
+    protected override int VisualChildrenCount => _visuals.Count;
+    protected override Visual GetVisualChild(int index) => _visuals[index];
+
+    // Accept all hits so mouse events fire even over transparent areas
+    protected override HitTestResult HitTestCore(PointHitTestParameters p)
+        => new PointHitTestResult(this, p.HitPoint);
+
+    protected override Size MeasureOverride(Size available)
+    {
+        double w = double.IsInfinity(available.Width) ? 560 : available.Width;
+
+        if (_monitors.Count > 0)
+        {
+            int totalVW = _monitors.Max(m => m.Bounds.Right) - _monitors.Min(m => m.Bounds.Left);
+            if (totalVW <= 0) totalVW = _monitors.Sum(m => Math.Max(m.Width, 1));
+
+            int totalVH = _monitors.Max(m => m.Bounds.Bottom) - _monitors.Min(m => m.Bounds.Top);
+
+            // Sum of all monitor heights (worst-case: all stacked vertically)
+            int totalStackH = _monitors.Sum(m => m.Height);
+
+            const double pad = 12;
+            double scaleW = (w - pad * 2) / totalVW;
+
+            // Tall enough to show current layout AND to drag monitors into a full vertical stack
+            double currentLayoutH = totalVH  * scaleW + pad * 2;
+            double fullStackH     = totalStackH * scaleW + pad * 2;
+            double ideal = Math.Max(currentLayoutH, fullStackH);
+
+            return new Size(w, Math.Clamp(ideal, 160, 650));
+        }
+        return new Size(w, 200);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        BuildRects(finalSize.Width, finalSize.Height);
+        Redraw(finalSize.Width, finalSize.Height);
+        return finalSize;
+    }
+
+    public void SetData(List<MonitorInfo> monitors, Dictionary<string, string> nicknames)
+    {
+        _monitors  = monitors;
+        _nicknames = nicknames;
+        _rects.Clear();
+        _dragId = null;
+        InvalidateMeasure();  // recalculates ideal height from new monitor layout
+        InvalidateArrange();  // redraws with correct size
+    }
+
+    // ── Coordinate helpers ────────────────────────────────────────────────────
+
+    private void BuildRects(double w, double h)
+    {
+        _rects.Clear();
+        if (w < 10 || h < 10 || _monitors.Count == 0) return;
+
+        _minLeft = _monitors.Min(m => m.Bounds.Left);
+        _minTop  = _monitors.Min(m => m.Bounds.Top);
+        int totalW = _monitors.Max(m => m.Bounds.Right)  - _minLeft;
+        int totalH = _monitors.Max(m => m.Bounds.Bottom) - _minTop;
+
+        if (totalW == 0) totalW = _monitors.Sum(m => Math.Max(m.Width,  1));
+        if (totalH == 0) totalH = _monitors.Max(m => Math.Max(m.Height, 1));
+        if (totalW == 0 || totalH == 0) return;
+
+        const double pad = 12;
+        // Scale width-limited so vertical space is available for stacking
+        _scale = Math.Min((w - pad * 2) / totalW, (h - pad * 2) / totalH);
+        _ox    = pad + (w - pad * 2 - totalW * _scale) / 2;
+        _oy    = pad; // top-anchor: keep vertical space free for dragging downward
+
+        double fallbackX = 0;
+        foreach (var mon in _monitors)
+        {
+            int bLeft = mon.Bounds.Left == mon.Bounds.Right ? (int)fallbackX : mon.Bounds.Left;
+            fallbackX += Math.Max(mon.Width, 1);
+
+            double cx = _ox + (bLeft - _minLeft) * _scale;
+            double cy = _oy + (mon.Bounds.Top - _minTop) * _scale;
+            double cw = Math.Max(mon.Width  * _scale, 60);
+            double ch = Math.Max(mon.Height * _scale, 40);
+
+            _rects[mon.DeviceId] = new Rect(cx, cy, cw, ch);
+        }
+    }
+
+    public List<(string DeviceId, int X, int Y)> GetCurrentPositions()
+    {
+        if (_rects.Count == 0 || _scale == 0) return [];
+
+        var raw = _rects.Select(kv => (
+            kv.Key,
+            rx: (int)Math.Round((kv.Value.X - _ox) / _scale) + _minLeft,
+            ry: (int)Math.Round((kv.Value.Y - _oy) / _scale) + _minTop
+        )).ToList();
+
+        int minX = raw.Min(p => p.rx);
+        int minY = raw.Min(p => p.ry);
+        return raw.Select(p => (p.Key, p.rx - minX, p.ry - minY)).ToList();
+    }
+
+    // ── Rendering ─────────────────────────────────────────────────────────────
+
+    private void Redraw(double w = 0, double h = 0)
+    {
+        if (w == 0) w = ActualWidth;
+        if (h == 0) h = ActualHeight;
+
+        using var dc = _dv.RenderOpen();
+        if (w < 10 || h < 10 || _rects.Count == 0) return;
+
+        var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+        foreach (var mon in _monitors)
+        {
+            if (!_rects.TryGetValue(mon.DeviceId, out var r)) continue;
+
+            bool dragging = mon.DeviceId == _dragId;
+            var bg  = Frozen(dragging ? Color.FromRgb(0x3A, 0x3A, 0x5F) : Color.FromRgb(0x2D, 0x2D, 0x3F));
+            var bc  = mon.IsPrimary ? Color.FromRgb(0x00, 0xA2, 0xED)
+                    : dragging      ? Color.FromRgb(0x60, 0x80, 0xFF)
+                                    : Color.FromRgb(0x4A, 0x4A, 0x6A);
+            var pen = new Pen(Frozen(bc), mon.IsPrimary || dragging ? 2 : 1);
+            pen.Freeze();
+
+            dc.DrawRoundedRectangle(bg, pen, r, 2, 2);
+
+            _nicknames.TryGetValue(mon.DeviceId, out var nick);
+            string label = !string.IsNullOrEmpty(nick) ? nick : $"Display {mon.DisplayNumber}";
+
+            var ft = new FormattedText(label,
+                System.Globalization.CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight, _tf, 10, Frozen(Colors.White), dpi)
+            {
+                MaxTextWidth = Math.Max(r.Width - 6, 1),
+                Trimming     = TextTrimming.CharacterEllipsis
+            };
+
+            if (r.Height > 36)
+            {
+                var sub = new FormattedText($"{mon.Width}×{mon.Height}",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight, _tf, 9,
+                    Frozen(Color.FromRgb(0xA0, 0xA0, 0xB0)), dpi);
+                double totalH2 = ft.Height + sub.Height + 2;
+                double ly = r.Y + (r.Height - totalH2) / 2;
+                dc.DrawText(ft,  new Point(r.X + (r.Width - ft.Width)  / 2, ly));
+                dc.DrawText(sub, new Point(r.X + (r.Width - sub.Width) / 2, ly + ft.Height + 2));
+            }
+            else
+            {
+                dc.DrawText(ft, new Point(r.X + (r.Width - ft.Width) / 2,
+                                          r.Y + (r.Height - ft.Height) / 2));
+            }
+        }
     }
 
     private static SolidColorBrush Frozen(Color c)
@@ -593,93 +771,148 @@ internal class MonitorArrangementVisual : FrameworkElement
         return b;
     }
 
-    public MonitorArrangementVisual()
+    // ── Mouse interaction ─────────────────────────────────────────────────────
+
+    private string? HitTest(Point p)
     {
-        _visuals = new VisualCollection(this);
-        _visuals.Add(_dv);
+        // Draw-order: last drawn = topmost visually; check in reverse
+        foreach (var mon in _monitors.AsEnumerable().Reverse())
+            if (_rects.TryGetValue(mon.DeviceId, out var r) && r.Contains(p))
+                return mon.DeviceId;
+        return null;
     }
 
-    protected override int VisualChildrenCount => _visuals.Count;
-    protected override Visual GetVisualChild(int index) => _visuals[index];
-
-    public void SetData(List<MonitorInfo> monitors, Dictionary<string, string> nicknames)
+    protected override void OnMouseMove(MouseEventArgs e)
     {
-        _monitors  = monitors;
-        _nicknames = nicknames;
-        Draw(ActualWidth, ActualHeight);
-    }
+        var p = e.GetPosition(this);
 
-    protected override Size MeasureOverride(Size availableSize) =>
-        new(double.IsInfinity(availableSize.Width)  ? 0 : availableSize.Width,
-            double.IsInfinity(availableSize.Height) ? 0 : availableSize.Height);
-
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        Draw(finalSize.Width, finalSize.Height);
-        return finalSize;
-    }
-
-    private void Draw(double w, double h)
-    {
-        using var dc = _dv.RenderOpen();   // always produces a fresh drawing
-        if (w < 10 || h < 10 || _monitors.Count == 0) return;
-
-        int minLeft = _monitors.Min(m => m.Bounds.Left);
-        int minTop  = _monitors.Min(m => m.Bounds.Top);
-        int totalW  = _monitors.Max(m => m.Bounds.Right)  - minLeft;
-        int totalH  = _monitors.Max(m => m.Bounds.Bottom) - minTop;
-
-        if (totalW == 0) totalW = _monitors.Sum(m => Math.Max(m.Bounds.Width, 1));
-        if (totalH == 0) totalH = _monitors.Max(m => Math.Max(m.Bounds.Height, 1));
-        if (totalW == 0 || totalH == 0) return;
-
-        const double pad = 12;
-        double scale = Math.Min((w - pad * 2) / totalW, (h - pad * 2) / totalH);
-        double ox = pad + (w - pad * 2 - totalW * scale) / 2;
-        double oy = pad + (h - pad * 2 - totalH * scale) / 2;
-
-        double fallbackX = 0;
-        foreach (var monitor in _monitors)
+        if (_dragId != null && e.LeftButton == MouseButtonState.Pressed)
         {
-            int bLeft = monitor.Bounds.Left == monitor.Bounds.Right ? (int)fallbackX : monitor.Bounds.Left;
-            int bTop  = monitor.Bounds.Top;
-            int bW    = Math.Max(monitor.Bounds.Width,  1);
-            int bH    = Math.Max(monitor.Bounds.Height, 1);
-            fallbackX += bW;
+            var r = _rects[_dragId];
+            double nx = Math.Clamp(p.X - _dragOffset.X, 0, ActualWidth  - r.Width);
+            double ny = Math.Clamp(p.Y - _dragOffset.Y, 0, ActualHeight - r.Height);
+            _rects[_dragId] = new Rect(nx, ny, r.Width, r.Height);
+            Cursor = Cursors.SizeAll;
+            Redraw();
+        }
+        else
+        {
+            Cursor = HitTest(p) != null ? Cursors.SizeAll : Cursors.Arrow;
+        }
+    }
 
-            double rx = ox + (bLeft - minLeft) * scale;
-            double ry = oy + (bTop  - minTop)  * scale;
-            double rw = Math.Max(bW * scale, 40);
-            double rh = Math.Max(bH * scale, 28);
+    protected override void OnMouseDown(MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left) return;
+        var p  = e.GetPosition(this);
+        var id = HitTest(p);
+        if (id == null) return;
 
-            var pen  = new Pen(monitor.IsPrimary ? _accentBrush : _borderBrush,
-                               monitor.IsPrimary ? 2 : 1);
-            pen.Freeze();
-            dc.DrawRoundedRectangle(_bgBrush, pen, new Rect(rx, ry, rw, rh), 2, 2);
+        _dragId     = id;
+        var r       = _rects[id];
+        _dragOffset = new Point(p.X - r.X, p.Y - r.Y);
+        CaptureMouse();
+        e.Handled = true;
+    }
 
-            _nicknames.TryGetValue(monitor.DeviceId, out var nick);
-            string label = !string.IsNullOrEmpty(nick) ? nick : $"Display {monitor.Index + 1}";
+    protected override void OnMouseUp(MouseButtonEventArgs e)
+    {
+        if (_dragId == null || e.ChangedButton != MouseButton.Left) return;
+        Snap(_dragId);
+        _dragId = null;
+        ReleaseMouseCapture();
+        Cursor = Cursors.Arrow;
+        Redraw();
+        e.Handled = true;
+    }
 
-            var ft = new FormattedText(label,
-                System.Globalization.CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, _typeface, 10, _textBrush,
-                VisualTreeHelper.GetDpi(this).PixelsPerDip)
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        if (_dragId == null) Cursor = Cursors.Arrow;
+    }
+
+    private void Snap(string id)
+    {
+        var r = _rects[id];
+
+        // Find the globally best X snap and best Y snap independently across all neighbors.
+        double snapX = r.X, snapY = r.Y;
+        double bestXDist = SnapThreshold, bestYDist = SnapThreshold;
+
+        foreach (var (oid, o) in _rects)
+        {
+            if (oid == id) continue;
+
+            // Candidate X positions: flush-right-of, flush-left-of, left-align, right-align
+            foreach (double xc in new[] { o.Right, o.X - r.Width, o.X, o.Right - r.Width })
             {
-                MaxTextWidth = Math.Max(rw - 6, 1),
-                Trimming     = TextTrimming.CharacterEllipsis
-            };
+                double d = Math.Abs(xc - r.X);
+                if (d < bestXDist) { bestXDist = d; snapX = xc; }
+            }
 
-            double labelY = rh > 36 ? ry + (rh / 2 - ft.Height) - 2 : ry + (rh - ft.Height) / 2;
-            dc.DrawText(ft, new Point(rx + (rw - ft.Width) / 2, labelY));
-
-            if (rh > 36)
+            // Candidate Y positions: flush-below, flush-above, top-align, bottom-align
+            foreach (double yc in new[] { o.Bottom, o.Y - r.Height, o.Y, o.Bottom - r.Height })
             {
-                var sub = new FormattedText($"{monitor.Bounds.Width}×{monitor.Bounds.Height}",
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    FlowDirection.LeftToRight, _typeface, 9, _subBrush,
-                    VisualTreeHelper.GetDpi(this).PixelsPerDip);
-                dc.DrawText(sub, new Point(rx + (rw - sub.Width) / 2, labelY + ft.Height + 1));
+                double d = Math.Abs(yc - r.Y);
+                if (d < bestYDist) { bestYDist = d; snapY = yc; }
             }
         }
+
+        double dl = bestXDist < SnapThreshold ? snapX : r.X;
+        double dt = bestYDist < SnapThreshold ? snapY : r.Y;
+
+        // Clamp to canvas before overlap resolver so pushes don't escape bounds
+        dl = Math.Clamp(dl, 0, ActualWidth  - r.Width);
+        dt = Math.Clamp(dt, 0, ActualHeight - r.Height);
+
+        // Resolve any remaining overlaps. Try all 4 push directions in penetration order
+        // and use the first one that actually produces a non-overlapping position.
+        // Using positive-area overlap (WPF IntersectsWith fires on shared edges too).
+        bool changed = true;
+        for (int pass = 0; pass < 8 && changed; pass++)
+        {
+            changed = false;
+            foreach (var (oid, o) in _rects)
+            {
+                if (oid == id) continue;
+
+                double overlapX = Math.Min(dl + r.Width, o.Right)  - Math.Max(dl, o.X);
+                double overlapY = Math.Min(dt + r.Height, o.Bottom) - Math.Max(dt, o.Y);
+                if (overlapX <= 0 || overlapY <= 0) continue;
+
+                // Build candidate positions ordered by minimum penetration (try smallest push first)
+                (double, double)[] candidates = overlapX <= overlapY
+                    ? new[]
+                    {
+                        (dl < o.X ? o.X - r.Width : o.Right, dt),   // X push (min)
+                        (dl, dt < o.Y ? o.Y - r.Height : o.Bottom),  // Y push (fallback)
+                        (dl < o.X ? o.Right : o.X - r.Width, dt),    // X push opposite
+                        (dl, dt < o.Y ? o.Bottom : o.Y - r.Height),  // Y push opposite
+                    }
+                    : new[]
+                    {
+                        (dl, dt < o.Y ? o.Y - r.Height : o.Bottom),  // Y push (min)
+                        (dl < o.X ? o.X - r.Width : o.Right, dt),   // X push (fallback)
+                        (dl, dt < o.Y ? o.Bottom : o.Y - r.Height),  // Y push opposite
+                        (dl < o.X ? o.Right : o.X - r.Width, dt),    // X push opposite
+                    };
+
+                foreach (var (cdl, cdt) in candidates)
+                {
+                    double ndl = Math.Clamp(cdl, 0, ActualWidth  - r.Width);
+                    double ndt = Math.Clamp(cdt, 0, ActualHeight - r.Height);
+                    double ox = Math.Min(ndl + r.Width, o.Right)  - Math.Max(ndl, o.X);
+                    double oy = Math.Min(ndt + r.Height, o.Bottom) - Math.Max(ndt, o.Y);
+                    if (ox <= 0 || oy <= 0)
+                    {
+                        dl = ndl; dt = ndt;
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        _rects[id] = new Rect(dl, dt, r.Width, r.Height);
     }
 }

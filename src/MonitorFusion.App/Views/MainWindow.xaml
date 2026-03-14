@@ -154,6 +154,8 @@
                 <!-- Navigation Items -->
                 <Button Content="🖥️  Monitors" Style="{StaticResource NavButton}"
                         Click="NavMonitors_Click"/>
+                <Button Content="📋  Monitor Profiles" Style="{StaticResource NavButton}"
+                        Click="NavMonitorProfiles_Click"/>
                 <Button Content="🖼️  Wallpaper" Style="{StaticResource NavButton}"
                         Click="NavWallpaper_Click"/>
                 <Button Content="📐  Window Snapping" Style="{StaticResource NavButton}"
@@ -192,81 +194,7 @@
         <!-- Right Content Area -->
         <ScrollViewer Grid.Column="1" Margin="30,20,30,20"
                       VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="ContentPanel">
-
-                <!-- Monitor Overview (default view) -->
-                <TextBlock Text="Connected Monitors"
-                           Foreground="{StaticResource TextBrush}"
-                           FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
-
-                <!-- Monitor cards will be generated in code-behind -->
-                <ItemsControl x:Name="MonitorList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{StaticResource SurfaceBrush}"
-                                    CornerRadius="8" Padding="16" Margin="0,0,0,12">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <!-- Monitor icon -->
-                                    <Border Grid.Column="0" Width="60" Height="40"
-                                            Background="#3A3A5A" CornerRadius="4"
-                                            Margin="0,0,16,0"
-                                            VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Index}"
-                                                   Foreground="{StaticResource AccentBrush}"
-                                                   FontSize="20" FontWeight="Bold"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
-                                    </Border>
-
-                                    <!-- Monitor details -->
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Foreground="{StaticResource TextBrush}"
-                                                   FontSize="16" FontWeight="SemiBold">
-                                            <Run Text="{Binding FriendlyName}"/>
-                                            <Run Text="{Binding IsPrimary, StringFormat=' {0}'}"
-                                                 Foreground="{StaticResource AccentBrush}"/>
-                                        </TextBlock>
-                                        <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                                   FontSize="13" Margin="0,4,0,0">
-                                            <Run Text="{Binding Width, Mode=OneWay}"/>
-                                            <Run Text="×"/>
-                                            <Run Text="{Binding Height, Mode=OneWay}"/>
-                                            <Run Text=" @ "/>
-                                            <Run Text="{Binding RefreshRate}"/>
-                                            <Run Text="Hz"/>
-                                        </TextBlock>
-                                        <TextBlock Text="{Binding DeviceId}"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                                   FontSize="11" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <!-- Quick Actions -->
-                <TextBlock Text="Quick Actions"
-                           Foreground="{StaticResource TextBrush}"
-                           FontSize="18" FontWeight="Bold" Margin="0,20,0,12"/>
-
-                <WrapPanel>
-                    <Button Content="Identify Monitors" Style="{StaticResource ModernButton}"
-                            Margin="0,0,10,10" Click="IdentifyMonitors_Click"/>
-                    <Button Content="Save Window Positions" Style="{StaticResource ModernButton}"
-                            Margin="0,0,10,10" Click="SavePositions_Click"/>
-                    <Button Content="Restore Window Positions" Style="{StaticResource ModernButton}"
-                            Margin="0,0,10,10" Click="RestorePositions_Click"/>
-                    <Button Content="Next Wallpaper" Style="{StaticResource ModernButton}"
-                            Margin="0,0,10,10" Click="NextWallpaper_Click"/>
-                </WrapPanel>
-
-            </StackPanel>
+            <StackPanel x:Name="ContentPanel"/>
         </ScrollViewer>
     </Grid>
     </Grid>

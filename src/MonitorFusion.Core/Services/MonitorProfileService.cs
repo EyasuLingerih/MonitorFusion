@@ -183,6 +183,41 @@ public class MonitorProfileService
         return (true, string.Empty);
     }
 
+    /// <summary>
+    /// Repositions monitors without changing any other settings.
+    /// Positions are in virtual desktop coordinates; the caller should
+    /// normalise so the minimum X and Y are 0.
+    /// </summary>
+    public (bool Success, string Message) ApplyMonitorPositions(
+        List<(string DeviceId, int X, int Y)> positions)
+    {
+        foreach (var (deviceId, x, y) in positions)
+        {
+            if (!_monitorService.GetCurrentDisplayConfig(deviceId, out var devMode))
+                return (false, $"Monitor '{deviceId}' is not currently connected.");
+
+            devMode.dmPositionX = x;
+            devMode.dmPositionY = y;
+            devMode.dmFields    = MonitorDetectionService.DM_POSITION;
+
+            uint flags = MonitorDetectionService.CDS_UPDATEREGISTRY |
+                         MonitorDetectionService.CDS_NORESET;
+
+            int result = MonitorDetectionService.ChangeDisplaySettingsEx(
+                deviceId, ref devMode, IntPtr.Zero, flags, IntPtr.Zero);
+
+            if (result != 0 && result != 1)
+                return (false, $"Failed to reposition monitor (error {result}).");
+        }
+
+        int commit = MonitorDetectionService.ChangeDisplaySettingsEx(
+            null, IntPtr.Zero, IntPtr.Zero, 0, IntPtr.Zero);
+
+        return commit == 0 || commit == 1
+            ? (true, string.Empty)
+            : (false, $"Could not commit layout (error {commit}).");
+    }
+
     public void DeleteProfile(string profileName)
     {
         var settings = _settingsService.Load();

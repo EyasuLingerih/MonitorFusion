@@ -35,8 +35,11 @@ public class MonitorInfo
     /// <summary>Display orientation (0=default, 1=90°, 2=180°, 3=270°)</summary>
     public int Orientation { get; set; }
 
-    /// <summary>Index for display ordering</summary>
+    /// <summary>Index for display ordering (0-based)</summary>
     public int Index { get; set; }
+
+    /// <summary>1-based display number for UI labels</summary>
+    public int DisplayNumber => Index + 1;
 
     /// <summary>DPI scale percent (100 = 100%, 125 = 125%, 0 = not detected)</summary>
     public double DpiScale { get; set; } = 0;

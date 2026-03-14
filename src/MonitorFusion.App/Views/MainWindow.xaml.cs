@@ -38,20 +38,13 @@ public partial class MainWindow : Window
         // Force hWnd creation so hotkeys can work without the window being visible
         var hwnd = new WindowInteropHelper(this).EnsureHandle();
 
-        // Load and display monitors
-        RefreshMonitorList();
+        // Show default page
+        NavMonitors_Click(this, new RoutedEventArgs());
 
         // Hook WndProc for WM_DISPLAYCHANGE and WM_HOTKEY — done here so it always
         // runs even if hotkey registration fails below.
         var hwndSource = HwndSource.FromHwnd(hwnd);
         hwndSource?.AddHook(WndProc);
-
-        // Refresh monitor list whenever the window is shown (e.g. opened from tray)
-        IsVisibleChanged += (s, e) =>
-        {
-            if ((bool)e.NewValue)
-                RefreshMonitorList();
-        };
 
         // Initialize hotkeys
         InitializeHotkeys(hwnd);
@@ -63,13 +56,6 @@ public partial class MainWindow : Window
     }
 
 
-
-    private void RefreshMonitorList()
-    {
-        var monitors = App.MonitorService.GetAllMonitors();
-        System.Diagnostics.Debug.WriteLine($"Detected {monitors.Count} monitor(s).");
-        MonitorList.ItemsSource = monitors;
-    }
 
     private void InitializeHotkeys(IntPtr hwnd)
     {
@@ -125,10 +111,10 @@ public partial class MainWindow : Window
             // A monitor was connected, disconnected, or its resolution changed
             Dispatcher.BeginInvoke(() =>
             {
-                RefreshMonitorList();
-                // If the Monitors page is currently open, refresh it too
-                if (ContentPanel.Children.Count > 0 && ContentPanel.Children[0] is MonitorProfileSettingsView view)
-                    view.Refresh();
+                if (ContentPanel.Children.Count > 0 && ContentPanel.Children[0] is MonitorsView mv)
+                    mv.Refresh();
+                else if (ContentPanel.Children.Count > 0 && ContentPanel.Children[0] is MonitorProfileSettingsView mpv)
+                    mpv.Refresh();
             });
         }
         return IntPtr.Zero;
@@ -217,6 +203,12 @@ public partial class MainWindow : Window
     private void NavMonitors_Click(object sender, RoutedEventArgs e)
     {
         ContentPanel.Children.Clear();
+        ContentPanel.Children.Add(new MonitorsView());
+    }
+
+    private void NavMonitorProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        ContentPanel.Children.Clear();
         ContentPanel.Children.Add(new MonitorProfileSettingsView());
     }
 
@@ -272,67 +264,7 @@ public partial class MainWindow : Window
 
     #region Quick Actions
 
-    private void IdentifyMonitors_Click(object sender, RoutedEventArgs e)
-    {
-        var monitors = App.MonitorService.GetAllMonitors();
-        foreach (var monitor in monitors)
-        {
-            var label = new System.Windows.Controls.TextBlock
-            {
-                Text = (monitor.Index + 1).ToString(),
-                FontSize = 96,
-                FontWeight = System.Windows.FontWeights.Bold,
-                Foreground = System.Windows.Media.Brushes.White,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center
-            };
-
-            var subLabel = new System.Windows.Controls.TextBlock
-            {
-                Text = monitor.FriendlyName,
-                FontSize = 18,
-                Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromArgb(200, 200, 200, 200)),
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center,
-                Margin = new Thickness(0, 8, 0, 0)
-            };
-
-            var stack = new System.Windows.Controls.StackPanel
-            {
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center
-            };
-            stack.Children.Add(label);
-            stack.Children.Add(subLabel);
-
-            var overlay = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize,
-                Topmost = true,
-                ShowInTaskbar = false,
-                AllowsTransparency = true,
-                Background = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromArgb(210, 15, 15, 30)),
-                Left = monitor.Bounds.Left,
-                Top = monitor.Bounds.Top,
-                Width = monitor.Width,
-                Height = monitor.Height,
-                Content = stack
-            };
-            overlay.Show();
-
-            var timer = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(3)
-            };
-            timer.Tick += (s, _) => { overlay.Close(); timer.Stop(); };
-            timer.Start();
-        }
-    }
-
-    private void SavePositions_Click(object? sender, RoutedEventArgs e)
+    public void SavePositions_Click(object? sender, RoutedEventArgs e)
     {
         var profile = App.WindowService.SaveCurrentPositions("Quick Save");
         var settings = App.SettingsService.Load();
@@ -412,7 +344,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void RestorePositions_Click(object? sender, RoutedEventArgs e)
+    public async void RestorePositions_Click(object? sender, RoutedEventArgs e)
     {
         var settings = App.SettingsService.Load();
         var profile = settings.WindowProfiles.FirstOrDefault(p => p.Name == "Quick Save");
@@ -428,7 +360,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void NextWallpaper_Click(object? sender, RoutedEventArgs e)
+    public void NextWallpaper_Click(object? sender, RoutedEventArgs e)
     {
         var settings = App.SettingsService.Load();
         var activeProfile = settings.WallpaperProfiles

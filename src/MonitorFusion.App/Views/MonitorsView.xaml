@@ -1,0 +1,103 @@
+<UserControl x:Class="MonitorFusion.App.Views.MonitorsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent"
+             Loaded="OnLoaded">
+
+    <StackPanel>
+
+        <!-- Header -->
+        <Grid Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Connected Monitors"
+                       Foreground="{StaticResource TextBrush}"
+                       FontSize="24" FontWeight="Bold"/>
+            <Button Grid.Column="1" Content="&#8635;  Refresh"
+                    Style="{StaticResource ModernButton}"
+                    Background="#2D2D3F" Foreground="{StaticResource AccentBrush}"
+                    VerticalAlignment="Top"
+                    Click="Refresh_Click"/>
+        </Grid>
+
+        <!-- Monitor cards -->
+        <ItemsControl x:Name="MonitorList">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="{StaticResource SurfaceBrush}"
+                            CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Width="60" Height="40"
+                                    Background="#3A3A5A" CornerRadius="4"
+                                    Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayNumber}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           FontSize="20" FontWeight="Bold"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding FriendlyName}"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text=" Primary"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               FontSize="16" FontWeight="SemiBold">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPrimary}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                                <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="13" Margin="0,4,0,0">
+                                    <Run Text="{Binding Width, Mode=OneWay}"/>
+                                    <Run Text="×"/>
+                                    <Run Text="{Binding Height, Mode=OneWay}"/>
+                                    <Run Text=" @ "/>
+                                    <Run Text="{Binding RefreshRate}"/>
+                                    <Run Text="Hz"/>
+                                </TextBlock>
+                                <TextBlock Text="{Binding DeviceId}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="11" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Quick Actions -->
+        <TextBlock Text="Quick Actions"
+                   Foreground="{StaticResource TextBrush}"
+                   FontSize="18" FontWeight="Bold" Margin="0,20,0,12"/>
+
+        <WrapPanel>
+            <Button Content="Identify Monitors" Style="{StaticResource ModernButton}"
+                    Margin="0,0,10,10" Click="IdentifyMonitors_Click"/>
+            <Button Content="Save Window Positions" Style="{StaticResource ModernButton}"
+                    Margin="0,0,10,10" Click="SavePositions_Click"/>
+            <Button Content="Restore Window Positions" Style="{StaticResource ModernButton}"
+                    Margin="0,0,10,10" Click="RestorePositions_Click"/>
+            <Button Content="Next Wallpaper" Style="{StaticResource ModernButton}"
+                    Margin="0,0,10,10" Click="NextWallpaper_Click"/>
+        </WrapPanel>
+
+    </StackPanel>
+</UserControl>
