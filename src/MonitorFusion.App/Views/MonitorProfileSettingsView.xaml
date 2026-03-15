@@ -8,8 +8,9 @@
              Background="Transparent"
              Loaded="OnLoaded">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="0,0,10,20">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Auto">
+        <StackPanel Margin="0,0,10,20" MinWidth="560">
 
             <!-- Header -->
             <Grid Margin="0,0,0,20">
@@ -46,11 +47,8 @@
                     <TextBlock Text="Drag monitors to rearrange, then click Apply Layout"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="12" Margin="0,0,0,12"/>
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Disabled">
-                        <Border x:Name="ArrangementBorder"
-                                Background="#141420" CornerRadius="4" MinHeight="160" MinWidth="560"/>
-                    </ScrollViewer>
+                    <Border x:Name="ArrangementBorder"
+                            Background="#141420" CornerRadius="4" MinHeight="160"/>
                     <Button x:Name="ApplyLayoutBtn"
                             Content="Apply Layout"
                             Style="{StaticResource ModernButton}"
