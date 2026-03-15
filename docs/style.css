@@ -117,11 +117,24 @@ a:hover { text-decoration: underline; }
 
 /* ===== Screenshots ===== */
 .screenshots { background: var(--surface); }
-.screenshots-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
-.screenshot-placeholder { background: var(--white); border: 2px dashed var(--border); border-radius: var(--radius); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
-.placeholder-inner { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-muted); font-size: .9rem; }
-.placeholder-icon { font-size: 2rem; }
-.placeholder-phase { font-size: .78rem; color: var(--blue); font-weight: 600; background: var(--blue-pale); padding: 2px 10px; border-radius: 999px; }
+.screenshots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+.screenshot-card { margin: 0; border-radius: var(--radius); overflow: hidden; background: #0d0d16; border: 1px solid var(--border); cursor: zoom-in; transition: transform .18s, box-shadow .18s; }
+.screenshot-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,.45); }
+.screenshot-card img { display: block; width: 100%; aspect-ratio: 16/10; object-fit: cover; object-position: top; }
+.screenshot-card figcaption { padding: 8px 12px; font-size: .82rem; font-weight: 500; color: var(--text-muted); background: #0d0d16; }
+
+/* Lightbox */
+#lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
+#lightbox.open { display: flex; }
+#lightbox #lb-img { max-width: min(92vw, 1100px); max-height: 80vh; object-fit: contain; border-radius: 6px; box-shadow: 0 16px 60px rgba(0,0,0,.7); }
+#lightbox #lb-caption { color: rgba(255,255,255,.7); font-size: .9rem; }
+.lb-close { position: fixed; top: 20px; right: 24px; background: none; border: none; color: #fff; font-size: 1.6rem; cursor: pointer; line-height: 1; opacity: .7; }
+.lb-close:hover { opacity: 1; }
+.lb-prev, .lb-next { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.1); border: none; color: #fff; font-size: 2.5rem; line-height: 1; padding: 8px 16px; cursor: pointer; border-radius: 4px; transition: background .15s; }
+.lb-prev { left: 16px; }
+.lb-next { right: 16px; }
+.lb-prev:hover, .lb-next:hover { background: rgba(255,255,255,.2); }
 
 /* ===== Roadmap ===== */
 .roadmap { background: var(--white); }

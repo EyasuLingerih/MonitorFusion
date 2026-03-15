@@ -248,32 +248,71 @@
   <section class="screenshots section" id="screenshots">
     <div class="container">
       <h2 class="section-title">Screenshots</h2>
-      <p class="section-sub">Screenshots will be added with the v1.0 release.</p>
+      <p class="section-sub">A look at every major screen — dark-themed, clean, and purpose-built for multi-monitor power users.</p>
       <div class="screenshots-grid">
-        <div class="screenshot-placeholder">
-          <div class="placeholder-inner">
-            <span class="placeholder-icon">⬛</span>
-            <span>Zone Layout Editor</span>
-            <span class="placeholder-phase">v1.0</span>
-          </div>
-        </div>
-        <div class="screenshot-placeholder">
-          <div class="placeholder-inner">
-            <span class="placeholder-icon">🖼️</span>
-            <span>Wallpaper Settings</span>
-            <span class="placeholder-phase">v1.0</span>
-          </div>
-        </div>
-        <div class="screenshot-placeholder">
-          <div class="placeholder-inner">
-            <span class="placeholder-icon">🖥️</span>
-            <span>Monitor Arrangement</span>
-            <span class="placeholder-phase">v1.0</span>
-          </div>
-        </div>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/01.PNG" alt="Connected Monitors — live monitor cards with Quick Actions" loading="lazy" />
+          <figcaption>Connected Monitors</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/02.PNG" alt="Monitor Profiles — drag-and-drop arrangement, save and restore layouts" loading="lazy" />
+          <figcaption>Monitor Profiles &amp; Arrangement</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/08.PNG" alt="Zone Layouts — divide any monitor into custom snap zones with live preview" loading="lazy" />
+          <figcaption>Zone Layouts</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/03.PNG" alt="Wallpaper Settings — per-monitor wallpapers with image adjustments and auto-rotation" loading="lazy" />
+          <figcaption>Wallpaper Settings</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/05.PNG" alt="Global Hotkeys — configure keyboard shortcuts for window movement and more" loading="lazy" />
+          <figcaption>Global Hotkeys</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/04.PNG" alt="Window Snapping — magnetic snap to monitor edges and other windows" loading="lazy" />
+          <figcaption>Window Snapping</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/06.PNG" alt="Multi-Monitor Taskbar — custom taskbar on secondary displays" loading="lazy" />
+          <figcaption>Multi-Monitor Taskbar</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/07.PNG" alt="Window Layouts — save and restore all window positions at once" loading="lazy" />
+          <figcaption>Window Layouts</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/09.PNG" alt="Focus Mode — dim inactive monitors to reduce distraction" loading="lazy" />
+          <figcaption>Focus Mode</figcaption>
+        </figure>
+
+        <figure class="screenshot-card" onclick="openLightbox(this)">
+          <img src="assets/screenshots/10.PNG" alt="General Settings — startup, tray, updates, and settings backup" loading="lazy" />
+          <figcaption>General Settings</figcaption>
+        </figure>
+
       </div>
     </div>
   </section>
+
+  <!-- LIGHTBOX -->
+  <div id="lightbox" onclick="closeLightbox()" role="dialog" aria-modal="true" aria-label="Screenshot viewer">
+    <button class="lb-close" onclick="closeLightbox()" aria-label="Close">✕</button>
+    <button class="lb-prev" onclick="lbStep(-1,event)" aria-label="Previous">&#8249;</button>
+    <img id="lb-img" src="" alt="" />
+    <p id="lb-caption"></p>
+    <button class="lb-next" onclick="lbStep(1,event)" aria-label="Next">&#8250;</button>
+  </div>
 
   <!-- ROADMAP -->
   <section class="roadmap section" id="roadmap">
@@ -377,5 +416,47 @@
     </div>
   </footer>
 
+  <script>
+    // Lightbox
+    const cards = () => Array.from(document.querySelectorAll('.screenshot-card'));
+    let current = 0;
+
+    function openLightbox(el) {
+      const all = cards();
+      current = all.indexOf(el);
+      showSlide(current);
+      document.getElementById('lightbox').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function showSlide(i) {
+      const all = cards();
+      const img  = all[i].querySelector('img');
+      const cap  = all[i].querySelector('figcaption');
+      document.getElementById('lb-img').src = img.src;
+      document.getElementById('lb-img').alt = img.alt;
+      document.getElementById('lb-caption').textContent = cap.textContent;
+    }
+
+    function lbStep(dir, e) {
+      e.stopPropagation();
+      const all = cards();
+      current = (current + dir + all.length) % all.length;
+      showSlide(current);
+    }
+
+    document.addEventListener('keydown', e => {
+      const lb = document.getElementById('lightbox');
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft')  lbStep(-1, e);
+      if (e.key === 'ArrowRight') lbStep(1,  e);
+    });
+  </script>
 </body>
 </html>
